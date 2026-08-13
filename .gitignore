@@ -1,0 +1,30 @@
+# Node
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-error.log*
+
+# 测试脚本（本地验证用，不上线）
+test_logic.js
+test_symbols.js
+test-smoke-workout.js
+test_daily.js
+browser-walkthrough.js
+_dbg.js
+_screens.js
+
+# 本地截图（调试留档，不上线）
+*.png
+
+# 本地开发工具
+tools/
+serve.js
+
+# 本地服务
+.DS_Store
+Thumbs.db
+
+# 缓存与临时文件
+*.log
+.tmp
+.cache/
