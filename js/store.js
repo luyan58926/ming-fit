@@ -36,6 +36,7 @@ const Store = (() => {
     recentDailyPushIds: [], // 最近显示过的 DAILY PUSH 文案 id（上限 10，短期优先不重复）
     workouts: [],           // 已完成训练 [{ date, dateKey, planDay, exName, duration, volume, setsDone, setsTotal, records:[{exId,en,cn,target,weight,reps,rir}], prs:[...] }]
     exHistory: {},          // { exId: [{ dateKey, weight, reps, rir }] } 动作历史
+    exerciseDefaults: {},   // { exId: defaultWeightKg } 用户预设的默认工作重量（优先级高于历史）
     bodyLog: [],            // [{ dateKey, weight, bodyFat, waist, chest, arm, hip, thigh }]
     measures: {},           // 最近一次各身体指标
     state: {                // 训练前状态（最近一次）
@@ -71,6 +72,7 @@ const Store = (() => {
         data = Object.assign(defaultData(), parsed);
         // 兼容旧数据缺字段
         if (!data.exHistory) data.exHistory = {};
+        if (!data.exerciseDefaults) data.exerciseDefaults = {};
         if (!data.achievements) data.achievements = {};
         if (!data.measures) data.measures = {};
         // 兼容旧字段：huaOpened → yanOpened
@@ -151,6 +153,24 @@ const Store = (() => {
     const last = h[h.length - 1];
     return last ? last.weight : null;
   }
+
+  // 获取用户预设的默认工作重量（若无则返回 null）
+  function getExerciseDefault(exId) {
+    const val = (get().exerciseDefaults || {})[exId];
+    return val !== undefined && val !== null ? val : null;
+  }
+
+  // 设置某动作的默认工作重量（weight 为 null 时清除该默认值）
+  function setExerciseDefault(exId, weight) {
+    const d = get();
+    if (weight === null || weight === undefined || weight === '') {
+      delete d.exerciseDefaults[exId];
+    } else {
+      d.exerciseDefaults[exId] = Number(weight);
+    }
+    save();
+  }
+
   function historyOf(exId) { return (get().exHistory || {})[exId] || []; }
   function bestOf(exId) {
     const h = historyOf(exId);
@@ -191,5 +211,5 @@ const Store = (() => {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  return { load, save, get, reset, pushExHistory, currentWeight, historyOf, bestOf, estimate1RM, todayKey, dateKeyOf, weekKeyOf };
+  return { load, save, get, reset, pushExHistory, currentWeight, getExerciseDefault, setExerciseDefault, historyOf, bestOf, estimate1RM, todayKey, dateKeyOf, weekKeyOf };
 })();

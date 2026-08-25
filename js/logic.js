@@ -197,14 +197,19 @@ const Logic = {
       if (!ex) return null;
       const hist = Store.historyOf(exId);
       const lastRec = hist.length ? hist[hist.length - 1] : null;
-      // 重量型动作：取历史重量或估算起始；时间型/徒手动作用 0
+      // 重量型动作：优先级 userDefault > 历史重量 > 估算起始；时间型/徒手动作用 0
       let suggestW = null;
       if (ex.type === 'time' || ex.type === 'reps') {
         suggestW = 0;
-      } else if (lastRec && lastRec.weight) {
-        suggestW = lastRec.weight;
       } else {
-        suggestW = estimateStartWeight(ex, profile);
+        const userDefault = Store.getExerciseDefault(exId);
+        if (userDefault !== null) {
+          suggestW = userDefault;
+        } else if (lastRec && lastRec.weight) {
+          suggestW = lastRec.weight;
+        } else {
+          suggestW = estimateStartWeight(ex, profile);
+        }
       }
       // 用户编辑训练内容时的覆盖（组数/次数/休息）
       const ov = (planDay && planDay.overrides) ? planDay.overrides[exId] : null;

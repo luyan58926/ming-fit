@@ -1516,6 +1516,8 @@ const UI = {
         <div class="gs-sec">ALTERNATIVES</div>
         <div class="gs-alts">${alts.length ? alts.map(a => `<button class="gs-alt" data-guide-alt="${a}">${EXERCISES[a].cn}<span>${EXERCISES[a].en}</span></button>`).join('') : '<div class="muted">暂无替代动作。</div>'}</div>
 
+        ${ex.type !== 'time' && ex.type !== 'reps' ? this._weightBlock(id, ex) : ''}
+
         <div class="gs-sec">MY PERFORMANCE</div>
         ${this._perfBlock(id, ex)}
 
@@ -1565,6 +1567,27 @@ const UI = {
       ${sug && sug.text ? `<div class="gs-p-sug">${sug.text}</div>` : ''}`;
   },
 
+  _weightBlock(id, ex) {
+    const userDefault = Store.getExerciseDefault(id);
+    const last = Store.currentWeight(id);
+    const best = Store.bestOf(id);
+    const hist = Store.historyOf(id);
+    const lastRec = hist.length ? hist[hist.length - 1] : null;
+    const sug = Logic.suggestNext(id, hist.slice(-10), ex.reps);
+    const unit = 'kg';
+    const disp = (v) => v !== null && v !== undefined ? `${v} ${unit}` : '—';
+    const sugText = sug && sug.text ? sug.text.split('。')[0] : '';
+    return `
+      <div class="gs-sec">MY WEIGHT</div>
+      <div class="gs-weight-card">
+        <div class="gs-w-row"><span class="gs-w-l">当前默认</span><span class="gs-w-v">${disp(userDefault)}</span></div>
+        <div class="gs-w-row"><span class="gs-w-l">上次</span><span class="gs-w-v">${lastRec ? `${lastRec.weight} ${unit} × ${lastRec.reps} 次` : '—'}</span></div>
+        <div class="gs-w-row"><span class="gs-w-l">历史最佳</span><span class="gs-w-v">${best ? `${best.weight} ${unit} × ${best.reps} 次` : '—'}</span></div>
+        ${sugText ? `<div class="gs-w-sug">${sugText} · 建议 <b>${sug.newWeight} ${unit}</b></div>` : ''}
+        <button class="btn btn-ghost gs-w-edit" data-wt-edit="${id}" style="margin-top:12px;">编辑默认重量</button>
+      </div>`;
+  },
+
   _bindGuideSheet(sheet, id) {
     sheet.querySelectorAll('[data-sheet-cancel]').forEach(b => b.onclick = () => sheet.remove());
     sheet.querySelectorAll('[data-guide-alt]').forEach(b => {
@@ -1576,6 +1599,60 @@ const UI = {
         this._bindGuideSheet(sheet, nid);
       };
     });
+    // 编辑默认重量按钮（从 _weightBlock 渲染）
+    const wtEditBtn = sheet.querySelector('[data-wt-edit]');
+    if (wtEditBtn) {
+      wtEditBtn.onclick = () => {
+        const exId = wtEditBtn.dataset.wtEdit;
+        const ex = EXERCISES[exId];
+        const currentW = Store.getExerciseDefault(exId) || Store.currentWeight(exId) || 0;
+        const wSheet = document.createElement('div');
+        wSheet.className = 'ws-mask';
+        wSheet.innerHTML = `
+          <div class="ws-sheet">
+            <div class="ws-title">设置默认工作重量</div>
+            <div class="ws-input-row">
+              <input class="ws-input" id="wt-num" type="number" value="${currentW}" step="0.5" min="0" placeholder="0" />
+              <span class="ws-unit">KG</span>
+            </div>
+            <div class="ws-quick">
+              <button class="ws-btn" data-ws="-5">−5</button>
+              <button class="ws-btn" data-ws="-2.5">−2.5</button>
+              <button class="ws-btn" data-ws="2.5">+2.5</button>
+              <button class="ws-btn" data-ws="5">+5</button>
+            </div>
+            <button class="btn btn-accent" data-wt-confirm style="margin-top:16px;">保存</button>
+            <button class="btn btn-ghost" data-wt-clear style="width:100%;margin-top:8px;">清除默认值</button>
+            <button class="btn btn-ghost" data-ws-cancel style="width:100%;margin-top:8px;">取消</button>
+          </div>`;
+        document.body.appendChild(wSheet);
+        const input = wSheet.querySelector('#wt-num');
+        wSheet.querySelectorAll('[data-ws]').forEach(b => {
+          b.onclick = () => {
+            const delta = parseFloat(b.dataset.ws);
+            const cur = parseFloat(input.value) || 0;
+            input.value = Math.max(0, Math.round((cur + delta) * 100) / 100);
+          };
+        });
+        wSheet.querySelector('[data-wt-confirm]').onclick = () => {
+          const newW = parseFloat(input.value) || 0;
+          Store.setExerciseDefault(exId, newW);
+          wSheet.remove();
+          // 刷新弹层
+          sheet.innerHTML = this._guideSheetHTML(id, EXERCISES[id]);
+          this._bindGuideSheet(sheet, id);
+        };
+        wSheet.querySelector('[data-wt-clear]').onclick = () => {
+          Store.setExerciseDefault(exId, null);
+          wSheet.remove();
+          sheet.innerHTML = this._guideSheetHTML(id, EXERCISES[id]);
+          this._bindGuideSheet(sheet, id);
+        };
+        wSheet.querySelector('[data-ws-cancel]').onclick = () => wSheet.remove();
+        wSheet.addEventListener('click', (e) => { if (e.target === wSheet) wSheet.remove(); });
+        setTimeout(() => input.focus(), 100);
+      };
+    }
   },
 
   /* ---------- 进度 ---------- */
@@ -2680,6 +2757,13 @@ const UI = {
       this.finishWorkout();
       return;
     }
+    // 重量继承：第 N+1 组自动继承第 N 组的重量（仅重量型动作）
+    if ((ex.type !== 'time' && ex.type !== 'reps') && ex.done.length > 0 && ex.done.length < ex.sets && !ex.skipped) {
+      const prevWeight = ex.done[ex.done.length - 1].weight;
+      if (prevWeight !== undefined && prevWeight !== null) {
+        ex.weight = prevWeight;
+      }
+    }
     const total = w.exercises.length;
     const next = idx + 1 < total ? w.exercises[idx+1] : null;
     const isLast = idx === total - 1;
@@ -2734,7 +2818,7 @@ const UI = {
         <div class="last-time">上次：${lastDisplay}</div>
 
         <div class="target-row">
-          <div class="target-weight">${isTime ? ex.reps[1] : ex.weight} <span class="unit">${unit}</span></div>
+          <div class="target-weight" data-weight-btn="${ex.weight}" data-ex-idx="${idx}">${isTime ? ex.reps[1] : ex.weight} <span class="unit">${unit}</span></div>
           <div class="target-meta">
             <div class="tm">${ex.sets} × ${ex.reps[0]}-${ex.reps[1]} ${unit}</div>
             <div class="tm-sm">RIR ${ex.rir} · 目标 ${targetReps}${isTime ? ' ' + unit : '+'}</div>
@@ -2781,6 +2865,50 @@ const UI = {
         rirVal = Number(b.dataset.rir);
       };
     });
+
+    // 重量编辑（仅重量型动作，训练中点击目标重量弹出底部编辑面板）
+    const weightBtn = this.app.querySelector('[data-weight-btn]');
+    if (weightBtn) {
+      weightBtn.onclick = () => {
+        const currentW = Number(weightBtn.dataset.weightBtn) || ex.weight || 0;
+        const sheet = document.createElement('div');
+        sheet.className = 'ws-mask';
+        sheet.innerHTML = `
+          <div class="ws-sheet">
+            <div class="ws-title">设置重量</div>
+            <div class="ws-input-row">
+              <input class="ws-input" id="ws-num" type="number" value="${currentW}" step="0.5" min="0" placeholder="0" />
+              <span class="ws-unit">KG</span>
+            </div>
+            <div class="ws-quick">
+              <button class="ws-btn" data-ws="-2.5">−2.5</button>
+              <button class="ws-btn" data-ws="-1.25">−1.25</button>
+              <button class="ws-btn" data-ws="1.25">+1.25</button>
+              <button class="ws-btn" data-ws="2.5">+2.5</button>
+            </div>
+            <button class="btn btn-accent" data-ws-confirm style="margin-top:16px;">确认</button>
+            <button class="btn btn-ghost" data-ws-cancel style="width:100%;margin-top:8px;">取消</button>
+          </div>`;
+        document.body.appendChild(sheet);
+        const input = sheet.querySelector('#ws-num');
+        sheet.querySelectorAll('[data-ws]').forEach(b => {
+          b.onclick = () => {
+            const delta = parseFloat(b.dataset.ws);
+            const cur = parseFloat(input.value) || 0;
+            input.value = Math.max(0, Math.round((cur + delta) * 100) / 100);
+          };
+        });
+        sheet.querySelector('[data-ws-confirm]').onclick = () => {
+          const newW = Math.max(0, parseFloat(input.value) || 0);
+          ex.weight = newW;
+          sheet.remove();
+          this.renderExercise(idx);
+        };
+        sheet.querySelector('[data-ws-cancel]').onclick = () => sheet.remove();
+        sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.remove(); });
+        setTimeout(() => input.focus(), 100);
+      };
+    }
 
     const csBtn = this.app.querySelector('[data-complete-set]');
     if (csBtn) csBtn.onclick = () => {
@@ -3058,11 +3186,19 @@ const UI = {
         </div>
 
         ${nextEx.length ? `<div class="next-session">
-          <div class="ns-h">NEXT SESSION</div>
-          ${nextEx.slice(0,4).map(n=>{
+          <div class="ns-h">下次建议</div>
+          ${nextEx.slice(0,4).map((n, i)=>{
             const isTime = n.ex && n.ex.type === 'time';
             const unit = isTime ? ' ' + (n.ex.timeUnit || 'sec') : 'kg';
-            return `<div class="next-row"><span class="n-ex">${n.cn}</span><span class="n-adj">${n.text.split('。')[0]} <b>${n.newWeight}${unit}</b></span></div>`;
+            const sugText = n.text.split('。')[0];
+            return `<div class="next-row">
+              <span class="n-ex">${n.cn}</span>
+              <span class="n-sug">建议 <b>${n.newWeight}${unit}</b> · ${sugText}</span>
+              <div class="n-btns">
+                <button class="n-btn adopt" data-adopt="${i}">采用</button>
+                <button class="n-btn keep" data-keep="${i}">保持</button>
+              </div>
+            </div>`;
           }).join('')}
         </div>` : ''}
 
@@ -3079,5 +3215,25 @@ const UI = {
       this.switchTab('today');
       this.renderToday();
     };
+    // 渐进超负荷按钮：采用建议 / 保持当前
+    this.app.querySelectorAll('[data-adopt]').forEach(b => {
+      b.onclick = () => {
+        const i = parseInt(b.dataset.adopt);
+        const n = nextEx[i];
+        if (n && n.ex) {
+          Store.setExerciseDefault(n.ex.cn, n.newWeight);
+        }
+        b.textContent = '已采用';
+        b.disabled = true;
+        b.parentElement.querySelector('[data-keep]').style.display = 'none';
+      };
+    });
+    this.app.querySelectorAll('[data-keep]').forEach(b => {
+      b.onclick = () => {
+        b.textContent = '已保持';
+        b.disabled = true;
+        b.parentElement.querySelector('[data-adopt]').style.display = 'none';
+      };
+    });
   }
 };
