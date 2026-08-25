@@ -33,6 +33,7 @@ const Store = (() => {
     smartPlan: null,        // SMART PLAN（问卷生成后原样保留，不删除 MING PLAN）
     voice: 'standard',      // training voice: standard | motivational | yan
     rivalMode: true,        // RIVAL MODE 对手刺激开关（默认 ON；OFF 时首页不出现 0哥/签哥/小王总 相关文案）
+    lang: 'zh-CN',          // 界面语言：zh-CN | en-US（默认中文）
     recentDailyPushIds: [], // 最近显示过的 DAILY PUSH 文案 id（上限 10，短期优先不重复）
     workouts: [],           // 已完成训练 [{ date, dateKey, planDay, exName, duration, volume, setsDone, setsTotal, records:[{exId,en,cn,target,weight,reps,rir}], prs:[...] }]
     exHistory: {},          // { exId: [{ dateKey, weight, reps, rir }] } 动作历史

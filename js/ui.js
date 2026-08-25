@@ -139,8 +139,8 @@ const UI = {
       <div class="ob-welcome">
         <div class="ow-brand">MING FIT</div>
         <div class="ow-slogan">STRONGER THAN YESTERDAY</div>
-        <div class="ow-quote">今天也比昨天强一点。</div>
-        <button class="btn btn-accent ow-btn" data-ob-start>开始设置 →</button>
+        <div class="ow-quote">${I18n.t('ob.welcomeQuote')}</div>
+        <button class="btn btn-accent ow-btn" data-ob-start>${I18n.t('ob.startSetup')}</button>
       </div>`;
   },
 
@@ -150,36 +150,38 @@ const UI = {
     const opt = (id, label, unit) => `
       <div class="field ob-opt">
         <label>${label}<span class="f-unit">${unit || ''}</span></label>
-        <input type="number" id="${id}" placeholder="可选" value="${v[id] || ''}">
+        <input type="number" id="${id}" placeholder="${I18n.lang === 'zh-CN' ? '可选' : 'Optional'}" value="${v[id] || ''}">
       </div>`;
+    const namePh = I18n.lang === 'zh-CN' ? '昵称 / 名字' : 'Nickname / name';
+    const defaultName = I18n.lang === 'zh-CN' ? '明哥' : 'Ming';
     return `
-      <h2>先认识你一下。</h2>
-      <p class="ob-desc">这是你的身体档案。它只用于记录你的状态，<b>不会自动生成或覆盖任何训练方案</b>。</p>
-      <div class="field"><label>怎么称呼你</label>
-        <input type="text" id="ob-name" placeholder="昵称 / 名字" value="${v.name || '明哥'}">
+      <h2>${I18n.t('ob.bodyStepTitle')}</h2>
+      <p class="ob-desc">${I18n.t('ob.bodyNote')}</p>
+      <div class="field"><label>${I18n.t('ob.nameLabel')}</label>
+        <input type="text" id="ob-name" placeholder="${namePh}" value="${v.name || defaultName}">
       </div>
-      <div class="field"><label>性别</label>
+      <div class="field"><label>${I18n.t('ob.genderLabel')}</label>
         <div class="chip-grid">
-          <div class="chip ${v.gender==='male'?'selected':''}" data-set="gender" data-v="male">男</div>
-          <div class="chip ${v.gender==='female'?'selected':''}" data-set="gender" data-v="female">女</div>
+          <div class="chip ${v.gender==='male'?'selected':''}" data-set="gender" data-v="male">${I18n.t('ob.male')}</div>
+          <div class="chip ${v.gender==='female'?'selected':''}" data-set="gender" data-v="female">${I18n.t('ob.female')}</div>
         </div>
       </div>
-      <div class="field"><label>年龄</label><input type="number" id="ob-age" placeholder="岁" value="${v.age || ''}"></div>
-      <div class="field"><label>身高（cm）</label><input type="number" id="ob-height" placeholder="例如 178" value="${v.height || ''}"></div>
-      <div class="field"><label>当前体重（kg）</label><input type="number" id="ob-weight" placeholder="例如 78" value="${v.weight || ''}"></div>
-      <div class="ob-opt-head">可选指标 · 仅用于记录，不影响训练方案</div>
+      <div class="field"><label>${I18n.t('ob.ageLabel')}</label><input type="number" id="ob-age" placeholder="${I18n.t('ob.agePh')}" value="${v.age || ''}"></div>
+      <div class="field"><label>${I18n.t('ob.heightLabel')}</label><input type="number" id="ob-height" placeholder="${I18n.t('ob.heightPh')}" value="${v.height || ''}"></div>
+      <div class="field"><label>${I18n.t('ob.weightLabel')}</label><input type="number" id="ob-weight" placeholder="${I18n.t('ob.weightPh')}" value="${v.weight || ''}"></div>
+      <div class="ob-opt-head">${I18n.t('ob.optHead')}</div>
       <div class="ob-opt-grid">
-        ${opt('ob-bodyfat','体脂率','%')}
-        ${opt('ob-waist','腰围','cm')}
-        ${opt('ob-chest','胸围','cm')}
-        ${opt('ob-arm','臂围','cm')}
-        ${opt('ob-hip','臀围','cm')}
-        ${opt('ob-thigh','大腿围','cm')}
-        ${opt('ob-target','目标体重','kg')}
+        ${opt('ob-bodyfat', I18n.t('ob.bodyfat'), '%')}
+        ${opt('ob-waist', I18n.t('ob.waist'), 'cm')}
+        ${opt('ob-chest', I18n.t('ob.chest'), 'cm')}
+        ${opt('ob-arm', I18n.t('ob.arm'), 'cm')}
+        ${opt('ob-hip', I18n.t('ob.hip'), 'cm')}
+        ${opt('ob-thigh', I18n.t('ob.thigh'), 'cm')}
+        ${opt('ob-target', I18n.t('ob.targetWeight'), 'kg')}
       </div>
-      <p class="ob-desc note">BMI、体重、体脂率仅作为参考指标，不用于医学诊断。</p>
+      <p class="ob-desc note">${I18n.t('ob.bmiNote')}</p>
       <div class="step-nav">
-        <button class="btn btn-accent" data-ob-save-body>保存档案，选择方案 →</button>
+        <button class="btn btn-accent" data-ob-save-body>${I18n.t('ob.saveAndChoose')}</button>
       </div>`;
   },
 
@@ -189,7 +191,7 @@ const UI = {
     const num = (x) => { const n = Number(x); return (x === '' || x === undefined || x === null || isNaN(n)) ? 0 : n; };
     const nv = (x) => { const n = Number(x); return (x === '' || x === undefined || x === null || isNaN(n)) ? null : n; };
     const profile = {
-      name: (v.name && String(v.name).trim()) || '明哥',
+      name: (v.name && String(v.name).trim()) || (I18n.lang === 'zh-CN' ? '明哥' : 'Ming'),
       gender: v.gender || 'male',
       age: num(v.age), height: num(v.height), weight: num(v.weight),
       targetWeight: nv(v.targetWeight),
@@ -211,22 +213,22 @@ const UI = {
   // ---- 第 2 步：CHOOSE YOUR PLAN（双方案入口） ----
   _obChoosePlan() {
     return `
-      <h2>选择你的训练方案。</h2>
-      <p class="ob-desc">MING PLAN 是明哥的正式训练表，一键加载；SMART PLAN 会根据你的目标与条件智能定制。</p>
+      <h2>${I18n.t('ob.chooseTitle')}</h2>
+      <p class="ob-desc">${I18n.t('ob.chooseDesc')}</p>
       <div class="plan-choice">
         <div class="pc-card pc-ming" data-choose-ming>
           <div class="pcc-top"><span class="pcc-kicker">MING PLAN</span><span class="pcc-badge">RECOMMENDED</span></div>
-          <div class="pcc-name">明哥专属</div>
-          <div class="pcc-status">READY</div>
-          <div class="pcc-desc">妍宝已准备好。一键加载正式训练表：力量 3 天 · 有氧 2 天 · 主动恢复 1 天 · 完全恢复 1 天。</div>
-          <div class="pcc-go">使用 MING PLAN →</div>
+          <div class="pcc-name">${I18n.t('plan.mingPlan')}</div>
+          <div class="pcc-status">${I18n.t('ob.ready')}</div>
+          <div class="pcc-desc">${I18n.t('ob.mingPlanDesc')}</div>
+          <div class="pcc-go">${I18n.t('ob.useMingPlan')}</div>
         </div>
         <div class="pc-card pc-smart" data-choose-smart>
           <div class="pcc-top"><span class="pcc-kicker">SMART PLAN</span></div>
-          <div class="pcc-name">智能定制</div>
-          <div class="pcc-status">CUSTOM</div>
-          <div class="pcc-desc">回答几个问题，生成适合你的训练方案。随时可以换回 MING PLAN。</div>
-          <div class="pcc-go">定制 SMART PLAN →</div>
+          <div class="pcc-name">${I18n.t('plan.smartPlan')}</div>
+          <div class="pcc-status">${I18n.t('ob.custom')}</div>
+          <div class="pcc-desc">${I18n.t('ob.smartPlanDesc')}</div>
+          <div class="pcc-go">${I18n.t('ob.customSmartPlan')}</div>
         </div>
       </div>`;
   },
@@ -234,12 +236,12 @@ const UI = {
   // ---- 第 3 步（MING 分支）：MING PLAN ACTIVATED ----
   _obMingActivated() {
     return `
-      <h2>MING PLAN ACTIVATED</h2>
-      <p class="ob-desc">明哥正式训练表已加载。每周安排：力量 3 天 · 有氧 2 天 · 主动恢复 1 天 · 完全恢复 1 天。</p>
-      <div class="yan-quote">“${Persona.special('mingActivated')}”</div>
+      <h2>${I18n.t('ob.mingActivated')}</h2>
+      <p class="ob-desc">${I18n.t('ob.mingActivatedDesc')}</p>
+      <div class="yan-quote">"${Persona.special('mingActivated')}"</div>
       <div class="yan-sign">——妍宝</div>
       <div class="step-nav">
-        <button class="btn btn-accent" data-ming-go>开始训练 →</button>
+        <button class="btn btn-accent" data-ming-go>${I18n.t('ob.letsGo')}</button>
       </div>`;
   },
 
@@ -258,16 +260,16 @@ const UI = {
   _smartStep0() {
     const v = this.obDraft;
     return `
-      <h2>你的训练目标是什么？</h2>
-      <p class="ob-desc">目标会影响每周频率、动作与训练内容。</p>
-      <div class="field"><label>主要目标（单选）</label>
+      <h2>${I18n.t('smart.q1')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? '目标会影响每周频率、动作与训练内容。' : 'Your goal affects weekly frequency, exercises and training content.'}</p>
+      <div class="field"><label>${I18n.lang === 'zh-CN' ? '主要目标（单选）' : 'Primary goal (single choice)'}</label>
         <div class="chip-grid">
           ${Object.entries(DB.GOALS).map(([k, g]) => `<div class="chip ${v.goal === k ? 'selected' : ''}" data-set="goal" data-v="${k}">${g.name}</div>`).join('')}
         </div>
       </div>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-next>继续</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-next>${I18n.t('smart.qNext')}</button>
       </div>`;
   },
 
@@ -275,16 +277,16 @@ const UI = {
   _smartStep1() {
     const v = this.obDraft;
     return `
-      <h2>最想重点改善的部位？</h2>
-      <p class="ob-desc">可多选。系统会据此调整动作侧重。</p>
-      <div class="field"><label>重点部位（可多选）</label>
+      <h2>${I18n.t('smart.q2')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? '可多选。系统会据此调整动作侧重。' : 'Multiple choice. The system will adjust exercise focus accordingly.'}</p>
+      <div class="field"><label>${I18n.lang === 'zh-CN' ? '重点部位（可多选）' : 'Focus areas (multiple)'}</label>
         <div class="chip-grid cols-3">
           ${Object.entries(DB.BODY_FOCUS).map(([k, t]) => `<div class="chip ${v.bodyFocusList.includes(k) ? 'selected' : ''}" data-toggle-bodyfocus="${k}">${t}</div>`).join('')}
         </div>
       </div>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-next>继续</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-next>${I18n.t('smart.qNext')}</button>
       </div>`;
   },
 
@@ -292,62 +294,76 @@ const UI = {
   _smartStep2() {
     const v = this.obDraft;
     return `
-      <h2>你练过多久？</h2>
-      <p class="ob-desc">如实选。系统会根据经验安排动作难度。</p>
+      <h2>${I18n.t('smart.q5')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? '如实选。系统会根据经验安排动作难度。' : 'Be honest. The system will adjust exercise difficulty based on your experience.'}</p>
       <div class="chip-grid">
         ${Object.entries(DB.LEVELS).map(([k, l]) => `<div class="chip ${v.level === k ? 'selected' : ''}" data-set="level" data-v="${k}">${l.name}<span class="ch-sub">${l.desc || ''}</span></div>`).join('')}
       </div>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-next>继续</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-next>${I18n.t('smart.qNext')}</button>
       </div>`;
   },
 
   // SMART 问卷 3：每周训练条件（天数 + 时长）
   _smartStep3() {
     const v = this.obDraft;
+    const daysLabel = I18n.lang === 'zh-CN' ? '每周训练天数' : 'Training days per week';
+    const durLabel = I18n.lang === 'zh-CN' ? '单次训练时长' : 'Session duration';
     return `
-      <h2>每周能练几天？每次多久？</h2>
-      <p class="ob-desc">按实际情况选，系统据此编排每周安排。</p>
-      <div class="field"><label>每周训练天数</label>
+      <h2>${I18n.t('smart.q3')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? '按实际情况选，系统据此编排每周安排。' : 'Choose based on your actual schedule — the system will build your weekly plan accordingly.'}</p>
+      <div class="field"><label>${daysLabel}</label>
         <div class="chip-grid cols-3">
-          ${[2, 3, 4, 5, 6].map(n => `<div class="chip ${v.daysPerWeek === n ? 'selected' : ''}" data-set="daysPerWeek" data-v="${n}">${n} 天</div>`).join('')}
+          ${[2, 3, 4, 5, 6].map(n => `<div class="chip ${v.daysPerWeek === n ? 'selected' : ''}" data-set="daysPerWeek" data-v="${n}">${n} ${I18n.lang === 'zh-CN' ? '天' : 'days'}</div>`).join('')}
         </div>
       </div>
-      <div class="field"><label>单次训练时长</label>
+      <div class="field"><label>${durLabel}</label>
         <div class="chip-grid">
           ${[['30','30 min'],['45','45 min'],['60','60 min'],['90','90 min+']].map(([val, lbl]) => `<div class="chip ${v.duration === val ? 'selected' : ''}" data-set="duration" data-v="${val}">${lbl}</div>`).join('')}
         </div>
       </div>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-next>继续</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-next>${I18n.t('smart.qNext')}</button>
       </div>`;
   },
 
   // SMART 问卷 4：训练环境（地点 + 器械多选）
   _smartStep4() {
     const v = this.obDraft;
+    const equipLabel = I18n.lang === 'zh-CN' ? '可用器械（可多选）' : 'Available equipment (multiple)';
+    const equipMap = {
+      'barbell': I18n.lang === 'zh-CN' ? '杠铃' : 'Barbell',
+      'dumbbell': I18n.lang === 'zh-CN' ? '哑铃' : 'Dumbbell',
+      'smith': I18n.lang === 'zh-CN' ? '史密斯' : 'Smith machine',
+      'cable': I18n.lang === 'zh-CN' ? '龙门架' : 'Cable machine',
+      'lat': I18n.lang === 'zh-CN' ? '高位下拉' : 'Lat pulldown',
+      'row': I18n.lang === 'zh-CN' ? '坐姿划船' : 'Seated row',
+      'machine': I18n.lang === 'zh-CN' ? '固定器械' : 'Machine',
+      'leg_ext': I18n.lang === 'zh-CN' ? '腿屈伸' : 'Leg extension',
+      'leg_curl': I18n.lang === 'zh-CN' ? '腿弯举' : 'Leg curl',
+      'band': I18n.lang === 'zh-CN' ? '弹力带' : 'Resistance band',
+      'bar': I18n.lang === 'zh-CN' ? '单杠' : 'Pull-up bar',
+      'bench': I18n.lang === 'zh-CN' ? '训练凳' : 'Bench',
+      'none': I18n.lang === 'zh-CN' ? '无器械' : 'No equipment'
+    };
     return `
-      <h2>你都在哪练？</h2>
-      <p class="ob-desc">方案会根据场地与器械自动适配动作。</p>
-      <div class="field"><label>训练地点</label>
+      <h2>${I18n.t('smart.q6')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? '方案会根据场地与器械自动适配动作。' : 'The plan will automatically adapt exercises based on your gym and equipment.'}</p>
+      <div class="field"><label>${I18n.lang === 'zh-CN' ? '训练地点' : 'Location'}</label>
         <div class="chip-grid">
           ${Object.entries(DB.LOCATIONS).map(([k, t]) => `<div class="chip ${v.location === k ? 'selected' : ''}" data-set="location" data-v="${k}">${t}</div>`).join('')}
         </div>
       </div>
-      <div class="field"><label>可用器械（可多选）</label>
+      <div class="field"><label>${equipLabel}</label>
         <div class="chip-grid">
-          ${[
-            ['barbell','杠铃'],['dumbbell','哑铃'],['smith','史密斯'],['cable','龙门架'],
-            ['lat','高位下拉'],['row','坐姿划船'],['machine','固定器械'],['leg_ext','腿屈伸'],
-            ['leg_curl','腿弯举'],['band','弹力带'],['bar','单杠'],['bench','训练凳'],['none','无器械']
-          ].map(([k, t]) => `<div class="chip ${v.equipment.includes(k) ? 'selected' : ''}" data-toggle-equip="${k}">${t}</div>`).join('')}
+          ${Object.entries(equipMap).map(([k, t]) => `<div class="chip ${v.equipment.includes(k) ? 'selected' : ''}" data-toggle-equip="${k}">${t}</div>`).join('')}
         </div>
       </div>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-next>继续</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-next>${I18n.t('smart.qNext')}</button>
       </div>`;
   },
 
@@ -355,17 +371,17 @@ const UI = {
   _smartStep5() {
     const v = this.obDraft;
     return `
-      <h2>身体有没有不舒服？</h2>
-      <p class="ob-desc">MING FIT 是训练辅助工具，不是医疗诊断工具。持续疼痛、损伤或疾病问题，建议咨询医生或物理治疗师。</p>
-      <div class="field"><label>身体状况（可多选）</label>
+      <h2>${I18n.t('smart.q7')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? 'MING FIT 是训练辅助工具，不是医疗诊断工具。持续疼痛、损伤或疾病问题，建议咨询医生或物理治疗师。' : 'MING FIT is a training aid, not a medical diagnosis tool. For persistent pain, injury or illness, please consult a doctor or physical therapist.'}</p>
+      <div class="field"><label>${I18n.lang === 'zh-CN' ? '身体状况（可多选）' : 'Physical condition (multiple)'}</label>
         <div class="chip-grid">
           ${Object.entries(DB.RISKS).map(([k, t]) => `<div class="chip ${v.risks.includes(k) ? 'selected' : ''}" data-toggle-risk="${k}">${t}</div>`).join('')}
         </div>
       </div>
-      <p class="ob-desc note">如有疼痛或损伤，系统会谨慎调整动作，避开相关动作。</p>
+      <p class="ob-desc note">${I18n.lang === 'zh-CN' ? '如有疼痛或损伤，系统会谨慎调整动作，避开相关动作。' : 'If pain or injury is noted, the system will adjust exercises to avoid strain.'}</p>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-next>生成方案</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-next>${I18n.t('smart.qGenerate')}</button>
       </div>`;
   },
 
@@ -386,11 +402,11 @@ const UI = {
     if (!smart) {
       // 生成失败兜底：引导重新生成或使用 MING PLAN
       return `
-        <h2>方案生成失败了。</h2>
-        <p class="ob-desc">别担心，MING PLAN 正式训练表随时可用。</p>
+        <h2>${I18n.lang === 'zh-CN' ? '方案生成失败了。' : 'Plan generation failed.'}</h2>
+        <p class="ob-desc">${I18n.lang === 'zh-CN' ? '别担心，MING PLAN 正式训练表随时可用。' : 'No worries — MING PLAN is always available.'}</p>
         <div class="step-nav">
-          <button class="btn btn-ghost" data-smart-back>返回上一步</button>
-          <button class="btn btn-accent" data-go-ming>使用 MING PLAN →</button>
+          <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack').replace('← ', '')}</button>
+          <button class="btn btn-accent" data-go-ming>${I18n.t('ob.useMingPlan')}</button>
         </div>`;
     }
     const days = smart.days.map((day, i) => `
@@ -400,18 +416,18 @@ const UI = {
         <div class="spd-ex">${Array.isArray(day.exercises) && day.exercises.length ? day.exercises.map(id => (EXERCISES[id] ? EXERCISES[id].cn : id)).join(' / ') : (day.type === '训练' ? '—' : day.name)}</div>
       </div>`).join('');
     return `
-      <h2>YOUR SMART PLAN</h2>
-      <p class="ob-desc">根据你的目标与条件生成的方案。确认后才会启用，不会覆盖 MING PLAN。</p>
+      <h2>${I18n.t('ob.smartActivated')}</h2>
+      <p class="ob-desc">${I18n.lang === 'zh-CN' ? '根据你的目标与条件生成的方案。确认后才会启用，不会覆盖 MING PLAN。' : 'Personalized plan generated from your goals and conditions. You must confirm to enable it — MING PLAN is preserved.'}</p>
       <div class="plan-banner">
         <div class="pb-kicker">YOUR PROGRAM</div>
         <div class="pb-name">${smart.name}</div>
-        <div class="pb-sub">每周 ${smart.daysPerWeek} 练 · 每次 ${smart.duration} min · ${smart.week} 周</div>
+        <div class="pb-sub">${I18n.t('ob.smartPlanDesc2', [smart.daysPerWeek, smart.duration, smart.week])}</div>
       </div>
       <div class="sp-days">${days}</div>
-      <p class="ob-desc note">${smart.risks && smart.risks.length ? '已注意你的身体状况，相关动作已谨慎调整。' : '生成方案仅供参考，训练时以自身状态为准。'}</p>
+      <p class="ob-desc note">${smart.risks && smart.risks.length ? (I18n.lang === 'zh-CN' ? '已注意你的身体状况，相关动作已谨慎调整。' : 'Your physical condition has been noted — related exercises have been adjusted accordingly.') : (I18n.lang === 'zh-CN' ? '生成方案仅供参考，训练时以自身状态为准。' : 'This plan is for reference only — always train within your limits.')}</p>
       <div class="step-nav">
-        <button class="btn btn-ghost" data-smart-back>上一步</button>
-        <button class="btn btn-accent" data-smart-enable>启用这个方案 →</button>
+        <button class="btn btn-ghost" data-smart-back>${I18n.t('smart.qBack')}</button>
+        <button class="btn btn-accent" data-smart-enable>${I18n.t('smart.enable')}</button>
       </div>`;
   },
 
@@ -421,7 +437,7 @@ const UI = {
     const d = Store.get();
     const p = d.userProfile || d.profile || {};
     return {
-      name: p.name || '明哥',
+      name: p.name || (I18n.lang === 'zh-CN' ? '明哥' : 'Ming'),
       gender: p.gender || 'male',
       age: p.age || 0, height: p.height || 0, weight: p.weight || 0,
       goal: v.goal || 'muscle',
@@ -443,10 +459,10 @@ const UI = {
     sheet.className = 'sheet-mask';
     sheet.innerHTML = `
       <div class="sheet">
-        <div class="sheet-title">启用 SMART PLAN？</div>
-        <div class="sheet-sub">切换后不会删除任何训练记录、重量、身体数据与历史。MING PLAN 正式训练表仍保留在「我的」中，随时可以恢复。</div>
-        <button class="btn btn-accent" data-confirm-enable style="width:100%;">确认启用</button>
-        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">再想想</button>
+        <div class="sheet-title">${I18n.lang === 'zh-CN' ? '启用 SMART PLAN？' : 'Enable SMART PLAN?'}</div>
+        <div class="sheet-sub">${I18n.lang === 'zh-CN' ? '切换后不会删除任何训练记录、重量、身体数据与历史。MING PLAN 正式训练表仍保留在「我的」中，随时可以恢复。' : 'Switching will not delete any training records, weights, body data or history. MING PLAN remains in MINE and can be restored anytime.'}</div>
+        <button class="btn btn-accent" data-confirm-enable style="width:100%;">${I18n.lang === 'zh-CN' ? '确认启用' : 'Confirm'}</button>
+        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('plan.restoreCancel')}</button>
       </div>`;
     document.body.appendChild(sheet);
     sheet.querySelector('[data-confirm-enable]').onclick = () => {
@@ -463,10 +479,10 @@ const UI = {
           this._smartFromChange = false;
           this.switchTab('mine');
         }
-        this._toast(ok ? 'SMART PLAN 已启用。' : '启用失败，请重试。');
+        this._toast(ok ? (I18n.lang === 'zh-CN' ? 'SMART PLAN 已启用。' : 'SMART PLAN enabled.') : (I18n.lang === 'zh-CN' ? '启用失败，请重试。' : 'Enable failed. Please try again.'));
       } catch (e) {
         console.error('[MING FIT] activateSmartPlan failed:', e);
-        this._toast('启用时出了点问题，请重试。');
+        this._toast(I18n.lang === 'zh-CN' ? '启用时出了点问题，请重试。' : 'Something went wrong. Please try again.');
       }
     };
     sheet.querySelector('[data-sheet-cancel]').onclick = () => sheet.remove();
@@ -600,11 +616,14 @@ const UI = {
 
   _tabbar() {
     const tabs = [
-      ['today','今天'],['plan','计划'],['progress','进度'],['mine','我的']
+      ['today', I18n.t('nav.today')],
+      ['plan', I18n.t('nav.plan')],
+      ['progress', I18n.t('nav.progress')],
+      ['mine', I18n.t('nav.mine')]
     ];
     return `<div class="tabbar">${tabs.map(([id,lbl])=>`
       <button type="button" class="tab ${this.currentTab===id?'active':''}" data-tab="${id}">
-        <span class="t-ico">${id==='today'?'TODAY':id==='plan'?'PLAN':id==='progress'?'STATS':'MINE'}</span>
+        <span class="t-ico">${lbl}</span>
         <span class="t-lbl">${lbl}</span>
       </button>`).join('')}</div>`;
   },
@@ -643,11 +662,11 @@ const UI = {
         <div class="brand-row"><div class="brand" style="font-size:24px;">MING FIT</div></div>
       </div>
       <div class="today-card" style="text-align:center;padding:40px 24px;">
-        <div class="today-label">SOMETHING BROKE</div>
-        <div class="today-title" style="font-size:26px;margin-top:12px;">页面出了点问题</div>
-        <div class="today-muscles" style="margin-top:12px;">${msg || '但训练计划还在。'}</div>
-        <button class="btn" data-reload style="margin-top:24px;">重新加载 →</button>
-        <button class="btn btn-dark" data-home style="margin-top:12px;">返回首页</button>
+        <div class="today-label">${I18n.t('err.somethingBroke')}</div>
+        <div class="today-title" style="font-size:26px;margin-top:12px;">${I18n.t('err.somethingBroke')}</div>
+        <div class="today-muscles" style="margin-top:12px;">${msg || I18n.t('err.planGone')}</div>
+        <button class="btn" data-reload style="margin-top:24px;">${I18n.t('err.reload')}</button>
+        <button class="btn btn-dark" data-home style="margin-top:12px;">${I18n.t('err.backHome')}</button>
       </div>`;
   },
 
@@ -697,7 +716,8 @@ const UI = {
 
     const name = d.profile ? d.profile.name : '明哥';
     const hour = new Date().getHours();
-    const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+    const gKey = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    const greeting = I18n.t('home.greeting.' + gKey) + I18n.t('home.greeting.suffix');
     // 今日训练类型：由 每周安排(含本周临时调整) 决定
     const dow = new Date().getDay();
     const dayIndex = (dow + 6) % 7;
@@ -728,54 +748,54 @@ const UI = {
     if (isStrength) {
       const tpl = Logic.strengthTemplateFor(dayIndex);
       title = tpl.name;
-      label = 'STRENGTH DAY';
+      label = I18n.t('type.STRENGTH_SHORT');
       muscles = tpl.cn + ' · ' + tpl.muscles;
       stats = `
         <div class="today-stat"><div class="num">${tpl.restNote || 0}</div><div class="lbl">MIN</div></div>
         <div class="today-stat"><div class="num">${workout.totalSets || 0}</div><div class="lbl">SETS</div></div>
         <div class="today-stat"><div class="num">${(workout.exercises||[]).length}</div><div class="lbl">EX</div></div>`;
-      startBtn = `<button class="btn" data-start-workout>${inProgress ? 'CONTINUE WORKOUT' : (todayDone ? '继续训练' : 'START WORKOUT')} →</button>`;
+      startBtn = `<button class="btn" data-start-workout>${inProgress ? I18n.t('home.continueWorkout') : (todayDone ? '继续训练' : I18n.t('home.startWorkout'))}</button>`;
     } else if (isCardio) {
       const cpl = Logic.cardioTemplateFor(dayIndex);
       title = cpl.name;
-      label = 'CARDIO DAY';
+      label = I18n.t('type.CARDIO_SHORT');
       muscles = cpl.cn + ' · ' + cpl.intensity + '强度';
       stats = `
         <div class="today-stat"><div class="num">${cpl.targetMin[1]}</div><div class="lbl">MIN</div></div>
         <div class="today-stat"><div class="num">${cpl.profile}</div><div class="lbl">坡度/速度</div></div>
         <div class="today-stat"><div class="num">${cpl.stages.length}</div><div class="lbl">阶段</div></div>`;
-      startBtn = `<button class="btn" data-start-workout>${todayDone ? '继续训练' : 'START CARDIO'} →</button>`;
+      startBtn = `<button class="btn" data-start-workout>${todayDone ? '继续训练' : I18n.t('home.startCardio')}</button>`;
     } else if (isActiveRecovery) {
       const ar = Logic.activeRecoveryTemplateFor();
       title = ar.name;
-      label = 'ACTIVE RECOVERY';
+      label = I18n.t('type.ACTIVE_RECOVERY_SHORT');
       muscles = ar.cn + ' · 轻度有氧 + 拉伸';
       stats = `
         <div class="today-stat"><div class="num">${ar.targetMin[1]}</div><div class="lbl">MIN</div></div>
         <div class="today-stat"><div class="num">${ar.stretchMin}</div><div class="lbl">拉伸</div></div>
-        <div class="today-stat"><div class="num">${ar.options.length}</div><div class="lbl">可选</div></div>`;
-      startBtn = `<button class="btn" data-start-workout>${todayDone ? '继续恢复' : '开始主动恢复'} →</button>`;
+        <div class="today-stat"><div class="num">${ar.options.length}</div><div class="lbl">${I18n.t('ee.optional')}</div></div>`;
+      startBtn = `<button class="btn" data-start-workout>${todayDone ? '继续恢复' : I18n.t('home.startRecovery')}</button>`;
     } else if (isFullRest) {
       const fr = Logic.fullRestTemplateFor();
       title = fr.name;
-      label = 'FULL REST';
+      label = I18n.t('type.FULL_REST_SHORT');
       muscles = Persona.get('restDay');
       stats = `
         <div class="today-stat"><div class="num">R</div><div class="lbl">休息</div></div>
-        <div class="today-stat"><div class="num">${(fr.optional||[]).length}</div><div class="lbl">可选</div></div>`;
-      startBtn = `<button class="btn btn-dark" data-start-workout>完成完全恢复日</button>`;
+        <div class="today-stat"><div class="num">${(fr.optional||[]).length}</div><div class="lbl">${I18n.t('ee.optional')}</div></div>`;
+      startBtn = `<button class="btn btn-dark" data-start-workout>${I18n.t('home.completeRest')}</button>`;
     } else {
-      title = 'REST DAY';
-      label = 'REST DAY';
+      title = I18n.t('type.FULL_REST');
+      label = I18n.t('type.FULL_REST_SHORT');
       muscles = Persona.get('restDay');
       stats = `
         <div class="today-stat"><div class="num">20</div><div class="lbl">MIN</div></div>
         <div class="today-stat"><div class="num">60%</div><div class="lbl">强度</div></div>`;
-      startBtn = `<button class="btn btn-dark" data-start-workout>完成恢复日</button>`;
+      startBtn = `<button class="btn btn-dark" data-start-workout>${I18n.t('home.completeRecovery')}</button>`;
     }
 
     const isEvening = hour >= 20;
-    // 方案来源角标（训练主卡右上角：MING PLAN / SMART PLAN，仅显示方案名）
+    // 方案来源角标（训练主卡右上角）
     const planInfo = Logic.currentPlanInfo();
     const planCorner = planInfo && planInfo.type ? `<div class="plan-corner">${planInfo.name}</div>` : '';
     // 里程碑 / 提醒触发
@@ -792,16 +812,13 @@ const UI = {
     const overTrained = !todayDone && streak >= 4 && isStrength;
 
     // ===== DAILY PUSH 每日一句（首页动态文案系统）=====
-    // 每次只显示一条；CARE MODE 强制温和并关闭对手刺激；RIVAL MODE 关闭时不出对手文案
     const rivalMode = DailyPush.rivalEnabled();
     const careMode = Persona.softMode() || overTrained;
     const restDay = !isTraining;
     let dailyHtml;
     if (isEvening) {
-      // 晚间安全提醒（时间场景，保持原有逻辑）
       dailyHtml = `<div class="one-liner">${Persona.get('evening')}</div>`;
     } else if (todayDone && !inProgress) {
-      // 训练完成 → 完成文案（不显示"你还在看首页？"类刺激）
       dailyHtml = this._dailyPushHtml(DailyPush.pickHome({ done: true, care: false, rivalMode }));
     } else if (awayLong) {
       dailyHtml = `<div class="one-liner">${Persona.get('away4')}</div>`;
@@ -809,7 +826,6 @@ const UI = {
       dailyHtml = `<div class="one-liner">${Persona._milestone(streak)}</div>`;
     } else {
       const item = DailyPush.pickHome({ done: false, restDay, care: careMode, rivalMode });
-      // RIVAL CHECK 特殊彩蛋：低概率（10%），点击"那还等什么 →"直接进今天训练
       const rivalCheck = DailyPush.rivalCheckEligible({ rivalMode, care: careMode, done: false, restDay });
       dailyHtml = this._dailyPushHtml(item, { rivalCheck });
     }
@@ -818,12 +834,12 @@ const UI = {
       <div class="screen-header">
         <div class="brand-row">
           <div>
-            <div class="brand">MING FIT</div>
-            <div class="brand-sub">STRONGER THAN YESTERDAY</div>
+            <div class="brand">${I18n.t('home.brand')}</div>
+            <div class="brand-sub">${I18n.t('home.brandSub')}</div>
           </div>
-          <button class="adjust-btn" data-today-adjust>调整今天</button>
+          <button class="adjust-btn" data-today-adjust>${I18n.t('home.adjustToday')}</button>
         </div>
-        <div class="greeting">${greeting}，<span class="tag">${name}。</span></div>
+        <div class="greeting">${greeting}<span class="tag">${name}${I18n.t('home.greeting.suffix')}</span></div>
         ${dailyHtml}
       </div>
 
@@ -837,7 +853,7 @@ const UI = {
         </div>
         ${inProgress && isStrength ? `
         <div class="progress-line">
-          <div class="pl-status">WORKOUT IN PROGRESS</div>
+          <div class="pl-status">${I18n.t('home.workoutInProgress')}</div>
           <div class="pl-meta">${progEx} / ${(workout.exercises || []).length} EXERCISES · ${progSets} / ${progTotalSets} SETS · ${progMin} MIN</div>
         </div>` : ''}
         ${startBtn}
@@ -845,9 +861,9 @@ const UI = {
       </div>
 
       <div class="week-strip">
-        <div class="week-cell"><div class="num ${week>0?'accent':''}">${week}</div><div class="lbl">本周训练</div></div>
-        <div class="week-cell"><div class="num">${d.streak || 0}</div><div class="lbl">连续 DAYS</div></div>
-        <div class="week-cell"><div class="num">${rate}%</div><div class="lbl">完成率</div></div>
+        <div class="week-cell"><div class="num ${week>0?'accent':''}">${week}</div><div class="lbl">${I18n.t('home.thisWeek')}</div></div>
+        <div class="week-cell"><div class="num">${d.streak || 0}</div><div class="lbl">${I18n.t('home.streak')} DAYS</div></div>
+        <div class="week-cell"><div class="num">${rate}%</div><div class="lbl">${I18n.t('home.completion')}</div></div>
       </div>
 
       ${this._smartCoachCard(d, dayType, todayDone && !inProgress, overTrained, isCardio, isActiveRecovery)}
@@ -855,7 +871,7 @@ const UI = {
 
     sc.querySelectorAll('[data-today-adjust]').forEach(b => b.onclick = () => this.showTodayAdjust());
 
-    // RIVAL CHECK 彩蛋按钮：那还等什么 → 直接进入今天训练
+    // RIVAL CHECK 彩蛋按钮
     const rivalBtn = sc.querySelector('[data-rival-go]');
     if (rivalBtn) rivalBtn.onclick = () => {
       if (isStrength) this.startWorkout();
@@ -890,9 +906,10 @@ const UI = {
           <button class="btn btn-accent" data-rival-go style="margin-top:14px;">那还等什么 →</button>
         </div>`;
     }
+    const dpTag = I18n.t('home.dailyPush');
     return `
       <div class="daily-push">
-        <div class="dp-tag">DAILY PUSH</div>
+        <div class="dp-tag">${dpTag}</div>
         <div class="dp-text">${item.text}</div>
       </div>`;
   },
@@ -952,42 +969,40 @@ const UI = {
       yanLine = careMode ? Persona.coach('care', true) : Persona.coach(pool);
     }
 
-    const energyOpts = [['great','状态不错'],['good','一般'],['tired','有点累'],['wiped','很疲惫']];
-    const sleepOpts = [['great','睡得好'],['good','一般'],['bad','睡得差']];
+    const energyOpts = [['great', I18n.t('state.energy.great')], ['good', I18n.t('state.energy.good')], ['tired', I18n.t('state.energy.tired')], ['wiped', I18n.t('state.energy.wiped')]];
+    const sleepOpts = [['great', I18n.t('state.sleep.great')], ['good', I18n.t('state.sleep.good')], ['bad', I18n.t('state.sleep.bad')]];
 
-    const startLabel = isCardio ? 'START CARDIO →' : 'START WORKOUT →';
-    const kicker = isCardio ? 'CARDIO CHECK-IN' : 'TODAY CHECK-IN';
-    const desc = isCardio
-      ? '先告诉系统你现在的状态，有氧的时长和强度会根据它调整。'
-      : '先告诉系统你现在的状态，今天的强度会根据它调整。';
+    const startLabel = isCardio ? I18n.t('home.startCardio') : I18n.t('home.startWorkout');
+    const kicker = isCardio ? I18n.t('coach.checkin.kickerCardio') : I18n.t('coach.checkin.kicker');
+    const desc = isCardio ? I18n.t('coach.checkin.descCardio') : I18n.t('coach.checkin.desc');
 
     return `
       <div class="coach-card">
         <div class="cc-head">
           <div class="cc-kicker">${kicker}</div>
-          <div class="cc-step">${hasAdjust ? '已生成建议' : '1 · 2'}</div>
+          <div class="cc-step">${hasAdjust ? I18n.t('coach.checkin.stepDone') : I18n.t('coach.checkin.step')}</div>
         </div>
         ${!hasAdjust ? `
         <div class="cc-desc">${desc}</div>
-        <div class="cc-field"><label>今日状态</label>
+        <div class="cc-field"><label>${I18n.t('coach.checkin.energy')}</label>
           <div class="seg-row">
             ${energyOpts.map(([k,l]) => `<div class="seg ${ci.energy===k?'sel':''}" data-ci-energy="${k}"><span>${l}</span></div>`).join('')}
           </div>
         </div>
-        <div class="cc-field"><label>昨晚睡眠</label>
+        <div class="cc-field"><label>${I18n.t('coach.checkin.sleep')}</label>
           <div class="seg-row">
             ${sleepOpts.map(([k,l]) => `<div class="seg ${ci.sleep===k?'sel':''}" data-ci-sleep="${k}"><span>${l}</span></div>`).join('')}
           </div>
         </div>` : `
         <div class="cc-summary ${careMode?'care':''}">
-          <div class="cc-s-title">${careMode ? (wiped||badSleep ? 'RECOVERY BIAS' : 'CARE MODE') : (checkin && checkin.title || 'TODAY ADJUSTMENT')}</div>
-          <div class="cc-s-txt">${careMode ? (isCardio ? '今天有氧改低强度、短时长。动一动就行，别跟自己较劲。' : '今天以完成和动作质量为主。不追纪录，别硬撑。') : (checkin ? checkin.summary : '')}</div>
+          <div class="cc-s-title">${careMode ? (wiped||badSleep ? I18n.t('coach.checkin.recoveryBias') : I18n.t('coach.checkin.careMode')) : (checkin && checkin.title || I18n.t('coach.checkin.todayAdj'))}</div>
+          <div class="cc-s-txt">${careMode ? (isCardio ? I18n.t('coach.checkin.careCardio') : I18n.t('coach.checkin.careStrength')) : (checkin ? checkin.summary : '')}</div>
         </div>
         <div class="cc-items">
           ${(checkin && checkin.items ? checkin.items : []).map(it => `<div class="cc-item"><span class="ci-k">${it.t}</span><span class="ci-v">${it.d}</span></div>`).join('')}
         </div>
         <div class="cc-btn-row">
-          <button class="btn btn-sm btn-ghost" data-ci-reset>重新选择</button>
+          <button class="btn btn-sm btn-ghost" data-ci-reset>${I18n.t('coach.checkin.reset')}</button>
           <button class="btn btn-sm btn-accent" data-start-workout>${startLabel}</button>
         </div>
         ${yanLine ? `<div class="hua-msg"><div class="hm-tag">${tag}</div><div class="hm-txt">${yanLine}</div></div>` : ''}
@@ -999,14 +1014,14 @@ const UI = {
      一个状态，一个结论：选择后只给一句系统反馈（强度结论 + 下次调整建议）。
      不叠加妍宝语录 / 额外鸡汤 / 第二次建议。 */
   _reviewCard(d, key, rv) {
-    const reviewOpts = [['easy','轻松'],['just','正好'],['hard','很累']];
+    const reviewOpts = [['easy', I18n.t('coach.review.easy')], ['just', I18n.t('coach.review.just')], ['hard', I18n.t('coach.review.hard')]];
     return `
       <div class="coach-card">
         <div class="cc-head">
-          <div class="cc-kicker">TODAY REVIEW</div>
-          <div class="cc-step">训练完成</div>
+          <div class="cc-kicker">${I18n.t('coach.review.kicker')}</div>
+          <div class="cc-step">${I18n.t('coach.review.step')}</div>
         </div>
-        <div class="cc-desc">今天练下来感觉怎么样？这个反馈会进入下一次计划。</div>
+        <div class="cc-desc">${I18n.t('coach.review.desc')}</div>
         <div class="seg-row">
           ${reviewOpts.map(([k,l]) => `<div class="seg ${rv===k?'sel':''}" data-review="${k}"><span>${l}</span></div>`).join('')}
         </div>
@@ -1039,15 +1054,15 @@ const UI = {
 
     // 任务列表：主动恢复 = 轻度有氧 + 拉伸 + 提醒；完全恢复 = 休息确认项
     const tasks = isActive ? [
-      { id: 0, en: 'LIGHT CARDIO 35-40', cn: '轻度有氧 35-40 分钟（跑步机慢走 / 椭圆机低阻力）' },
-      { id: 1, en: 'FULL STRETCH 15 MIN', cn: '全身静态拉伸 15 分钟' },
-      { id: 2, en: 'CREATINE + WATER', cn: '补充肌酸 · 多喝水' },
-      { id: 3, en: 'LIGHT DIET · REST', cn: '饮食清淡 · 注意恢复' }
+      { id: 0, en: 'LIGHT CARDIO 35-40', cn: I18n.t('coach.recovery.task0AR') },
+      { id: 1, en: 'FULL STRETCH 15 MIN', cn: I18n.t('coach.recovery.task1AR') },
+      { id: 2, en: 'CREATINE + WATER', cn: I18n.t('coach.recovery.task2AR') },
+      { id: 3, en: 'LIGHT DIET · REST', cn: I18n.t('coach.recovery.task3AR') }
     ] : [
-      { id: 0, en: 'FULL REST', cn: '充分休息全天，不做力量' },
-      { id: 1, en: 'LIGHT WALK OK', cn: '可选：散步 / 轻度拉伸（不勉强）' },
-      { id: 2, en: 'EAT WELL', cn: '好好吃饭 · 好好睡觉' },
-      { id: 3, en: 'NO EXTRA TRAINING', cn: '不加练。休息也是计划的一部分' }
+      { id: 0, en: 'FULL REST', cn: I18n.t('coach.recovery.task0FR') },
+      { id: 1, en: 'LIGHT WALK OK', cn: I18n.t('coach.recovery.task1FR') },
+      { id: 2, en: 'EAT WELL', cn: I18n.t('coach.recovery.task2FR') },
+      { id: 3, en: 'NO EXTRA TRAINING', cn: I18n.t('coach.recovery.task3FR') }
     ];
     const stats = Logic.recoveryStats(key, tasks.length);
     const doneArr = ((d.recovery || {})[key] || {}).done || [];
@@ -1060,7 +1075,7 @@ const UI = {
     // 恢复提醒卡（仅主动恢复日显示）
     const remindCard = isActive ? `
       <div class="recovery-remind">
-        <div class="rr-h">今日恢复提醒</div>
+        <div class="rr-h">${I18n.t('coach.recovery.remind')}</div>
         <div class="rr-items">${(ar.reminders || []).map(r => `<span class="rr-chip">${r}</span>`).join('')}</div>
       </div>` : '';
 
@@ -1069,14 +1084,14 @@ const UI = {
       // 已确认恢复日
       body = `
         <div class="cc-summary done">
-          <div class="cc-s-title">RECOVERY DONE</div>
-          <div class="cc-s-txt">${isActive ? '主动恢复已记录。身体恢复到位，明天可以放心练。' : '完全恢复已记录。休息到位，明天满状态开练。'}</div>
+          <div class="cc-s-title">${I18n.t('coach.recovery.doneTitle')}</div>
+          <div class="cc-s-txt">${isActive ? I18n.t('coach.recovery.doneAR') : I18n.t('coach.recovery.doneFR')}</div>
         </div>
         <div class="hua-msg"><div class="hm-tag">${tag}</div><div class="hm-txt">${Persona.coach('recovery_done', true)}</div></div>
         <div class="cc-progress"><span>${stats.doneCount} / ${stats.total}</span><div class="cc-bar"><i style="width:${Math.round(stats.doneCount/stats.total*100)}%"></i></div></div>`;
     } else {
       body = `
-        <div class="cc-desc">${isActive ? '今天是主动恢复日。轻度活动 + 拉伸，促进恢复，不强练。' : '今天是完全恢复日。任务只有一个：好好休息。'}</div>
+        <div class="cc-desc">${isActive ? I18n.t('coach.recovery.descAR') : I18n.t('coach.recovery.descFR')}</div>
         ${remindCard}
         <div class="cc-tasks">
           ${tasks.map((t,i) => `<div class="cc-task ${doneArr[i]?'done':''}" data-task="${i}"><span class="ct-check">${doneArr[i]?'✓':''}</span><span class="ct-txt">${t.en}<small>${t.cn}</small></span></div>`).join('')}
@@ -1084,16 +1099,16 @@ const UI = {
         ${stats.doneCount ? `<div class="cc-progress"><span>${stats.doneCount} / ${stats.total}</span><div class="cc-bar"><i style="width:${Math.round(stats.doneCount/stats.total*100)}%"></i></div></div>` : ''}
         ${partial ? `<div class="cc-hint">${Persona.coach('recovery_hint')}</div>` : ''}
         <div class="cc-btn-row">
-          <button class="btn btn-sm btn-accent" data-confirm-recovery ${canConfirm?'':'disabled'}>${allDone ? '完成恢复日 ✓' : (canConfirm ? '完成恢复日' : '至少完成 2 项可确认')}</button>
+          <button class="btn btn-sm btn-accent" data-confirm-recovery ${canConfirm?'':'disabled'}>${allDone ? I18n.t('coach.recovery.confirmBtnAll') : (canConfirm ? I18n.t('coach.recovery.confirmBtn') : I18n.t('coach.recovery.confirmMinHint'))}</button>
         </div>
-        ${canConfirm && !allDone ? `<div class="cc-sub-hint">可以提前确认，但建议把 ${stats.total} 项都完成。未完成项不会计入恢复记录。</div>` : ''}`;
+        ${canConfirm && !allDone ? `<div class="cc-sub-hint">${I18n.t('coach.recovery.earlyHint', [stats.total])}</div>` : ''}`;
     }
 
     return `
       <div class="coach-card">
         <div class="cc-head">
-          <div class="cc-kicker">${isActive ? 'ACTIVE RECOVERY TASKS' : 'FULL REST'}</div>
-          <div class="cc-step">${stats.confirmed ? '已完成' : (stats.doneCount + ' / ' + stats.total)}</div>
+          <div class="cc-kicker">${isActive ? I18n.t('coach.recovery.kickerAR') : I18n.t('coach.recovery.kickerFR')}</div>
+          <div class="cc-step">${stats.confirmed ? I18n.t('coach.recovery.stepDone') : (stats.doneCount + ' / ' + stats.total)}</div>
         </div>
         ${body}
       </div>`;
@@ -1171,7 +1186,7 @@ const UI = {
         const taskTotal = isActive ? (ar.options ? 4 : 4) : 4;
         const stats = Logic.recoveryStats(key, taskTotal);
         if (stats.doneCount < 2) {
-          this._toast('至少完成 2 个恢复任务才能确认。');
+          this._toast(I18n.t('coach.recovery.confirmMinHint'));
           return;
         }
         const d2 = Store.get();
@@ -1185,7 +1200,7 @@ const UI = {
           }
         }
         Store.save();
-        this._toast(isActive ? '主动恢复完成，已记录。' : '完全恢复完成，已记录。');
+        this._toast(isActive ? I18n.t('cardio.ARsaved') : I18n.t('coach.recovery.doneFR'));
         this.renderToday();
       };
     });
@@ -1198,31 +1213,31 @@ const UI = {
     this.view = 'cardio';
     this.app.innerHTML = `
       <div class="workout-screen">
-        <div class="ex-header"><div class="ex-count">ACTIVE RECOVERY</div></div>
-        <div class="ex-title" style="margin-top:10px;">选择今天的轻度有氧</div>
-        <div class="one-liner" style="margin-top:8px;">主动恢复：轻度活动 ${ar.targetMin[0]}-${ar.targetMin[1]} MIN + 全身拉伸 ${ar.stretchMin} MIN</div>
+        <div class="ex-header"><div class="ex-count">${I18n.t('cardio.activeRecovery')}</div></div>
+        <div class="ex-title" style="margin-top:10px;">${I18n.t('ar.selectCardio')}</div>
+        <div class="one-liner" style="margin-top:8px;">${I18n.t('type.ACTIVE_RECOVERY')}：${I18n.t('coach.recovery.task0AR').split('（')[0]} ${ar.targetMin[0]}-${ar.targetMin[1]} ${I18n.t('cardio.distance')} · ${I18n.t('coach.recovery.task1AR').split(' ')[0]} ${ar.stretchMin} MIN</div>
 
         <div class="cardio-methods">
           ${ar.options.map(o => `<div class="cardio-m" data-cd-method="${o.id}"><span class="cm-en">${o.en}</span><span class="cm-cn">${o.cn}<small>${o.profile}</small></span></div>`).join('')}
         </div>
 
-        <div class="field" style="margin-top:24px;"><label>目标时长（分钟）</label>
+        <div class="field" style="margin-top:24px;"><label>${I18n.t('ar.targetMin')}</label>
           <input type="number" class="cardio-input" data-cd-min value="${ar.targetMin[1]}" min="5" max="120">
         </div>
-        <div class="field"><label>训练强度</label>
+        <div class="field"><label>${I18n.t('ar.intensity')}</label>
           <div class="seg-row">
-            ${[['LOW','低'],['MED','中等']].map(([k,l]) => `<div class="seg ${k==='LOW'?'sel':''}" data-cd-intensity="${k}"><span>${l}</span></div>`).join('')}
+            ${[['LOW', I18n.t('ar.intensityLow')],['MED', I18n.t('ar.intensityMed')]].map(([k,l]) => `<div class="seg ${k==='LOW'?'sel':''}" data-cd-intensity="${k}"><span>${l}</span></div>`).join('')}
           </div>
         </div>
 
         <div class="recovery-remind" style="margin-top:18px;">
-          <div class="rr-h">今日恢复提醒</div>
+          <div class="rr-h">${I18n.t('coach.recovery.remind')}</div>
           <div class="rr-items">${(ar.reminders || []).map(r => `<span class="rr-chip">${r}</span>`).join('')}</div>
         </div>
 
         <div class="step-nav" style="margin-top:30px;">
-          <button class="btn btn-ghost" data-cancel-cardio>取消</button>
-          <button class="btn btn-accent" data-start-cardio-session>开始 →</button>
+          <button class="btn btn-ghost" data-cancel-cardio>${I18n.t('weight.cancel')}</button>
+          <button class="btn btn-accent" data-start-cardio-session>${I18n.t('ar.startSession')}</button>
         </div>
       </div>`;
 
@@ -1302,14 +1317,14 @@ const UI = {
       // 无方案 → 空态引导去选择训练方案
       sc.innerHTML = `
         <div class="screen-header">
-          <div class="brand-row"><div class="brand" style="font-size:24px;">PLAN</div></div>
-          <div class="brand-sub" style="margin-top:4px;">你的专属训练计划</div>
+          <div class="brand-row"><div class="brand" style="font-size:24px;">${I18n.t('plan.title')}</div></div>
+          <div class="brand-sub" style="margin-top:4px;">${I18n.t('plan.scheduleNote')}</div>
         </div>
         <div class="today-card" style="text-align:center;padding:40px 24px;">
-          <div class="today-label">NO PLAN</div>
-          <div class="today-title" style="font-size:30px;margin-top:12px;">还没有选择训练方案</div>
-          <div class="today-muscles" style="margin-top:12px;">从 MING PLAN 或 SMART PLAN 里选一个，开始安排每周训练。</div>
-          <button class="btn" data-choose-plan style="margin-top:24px;">选择训练方案 →</button>
+          <div class="today-label">${I18n.t('plan.noPlan')}</div>
+          <div class="today-title" style="font-size:30px;margin-top:12px;">${I18n.t('plan.noPlanHint')}</div>
+          <div class="today-muscles" style="margin-top:12px;">${I18n.t('plan.noPlanHint')}</div>
+          <button class="btn" data-choose-plan style="margin-top:24px;">${I18n.t('plan.choosePlan')}</button>
         </div>`;
       const b = sc.querySelector('[data-choose-plan]');
       if (b) b.onclick = () => this._goChoosePlan();
@@ -1317,7 +1332,7 @@ const UI = {
       return;
     }
 
-    const daysCn = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const daysCn = [I18n.t('sched.mon'), I18n.t('sched.tue'), I18n.t('sched.wed'), I18n.t('sched.thu'), I18n.t('sched.fri'), I18n.t('sched.sat'), I18n.t('sched.sun')];
     const daysEn = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     const wc = Logic.weekCompletion();
     const planInfo2 = Logic.currentPlanInfo();
@@ -1325,27 +1340,27 @@ const UI = {
 
     sc.innerHTML = `
       <div class="screen-header">
-        <div class="brand-row"><div class="brand" style="font-size:24px;">PLAN</div></div>
-        <div class="brand-sub" style="margin-top:4px;">每周训练计划 · 以本周安排为准</div>
+        <div class="brand-row"><div class="brand" style="font-size:24px;">${I18n.t('plan.title')}</div></div>
+        <div class="brand-sub" style="margin-top:4px;">${I18n.t('plan.scheduleNote')}</div>
         ${planBadge2}
       </div>
 
       <div class="today-card">
-        <div class="today-label">YOUR WEEKLY SCHEDULE</div>
+        <div class="today-label">${I18n.t('plan.yourWeeklySchedule')}</div>
         <div class="today-title" style="font-size:34px;">正式训练计划</div>
         <div class="today-muscles" style="margin-top:10px;font-size:13px;">力量 3 天 · 有氧 2 天 · 主动恢复 1 天 · 完全恢复 1 天</div>
         <div class="plan-type-row">
-          <div class="pt-chip pt-strength">STRENGTH × ${wc.strength.planned}</div>
-          <div class="pt-chip pt-cardio">CARDIO × ${wc.cardio.planned}</div>
-          <div class="pt-chip pt-ar">ACTIVE RECOVERY × ${wc.activeRecovery.planned}</div>
-          <div class="pt-chip pt-fr">FULL REST × ${wc.fullRest.planned}</div>
+          <div class="pt-chip pt-strength">${I18n.t('stats.strength')} × ${wc.strength.planned}</div>
+          <div class="pt-chip pt-cardio">${I18n.t('stats.cardio')} × ${wc.cardio.planned}</div>
+          <div class="pt-chip pt-ar">${I18n.t('stats.activeRecovery')} × ${wc.activeRecovery.planned}</div>
+          <div class="pt-chip pt-fr">${I18n.t('stats.fullRest')} × ${wc.fullRest.planned}</div>
         </div>
       </div>
 
-      <div class="prog-section-t">本周安排</div>
+      <div class="prog-section-t">${I18n.t('plan.thisWeekArr')}</div>
       ${daysCn.map((cn, i) => this._planDayCard(i, cn, daysEn[i])).join('')}
 
-      <div class="prog-section-t">动作库 · 点击卡片查看完整指南</div>
+      <div class="prog-section-t">${I18n.t('plan.exerciseLibrary')}</div>
       ${Object.entries(EXERCISES).map(([id, ex]) => this._exDetailCard(id, ex)).join('')}
     `;
     sc.querySelectorAll('[data-plan-day]').forEach(b => {
@@ -1390,11 +1405,12 @@ const UI = {
       detail = fr.note + (fr.optional || []).join(' / ');
     }
     const isToday = ((new Date().getDay() + 6) % 7) === i;
+    const typeLabel = I18n.lang === 'zh-CN' ? m.cn : m.en;
     return `
       <div class="day-card ${isToday ? 'is-today' : ''}" data-plan-day="${i}">
         <div class="dc-head">
           <div class="dc-day">${en} · ${cn}${isToday ? ' · 今天' : ''}</div>
-          <div class="dc-type ${m.css}">${m.en}</div>
+          <div class="dc-type ${m.css}">${typeLabel}</div>
         </div>
         <div class="dc-title">${title}</div>
         <div class="dc-muscles">${sub}</div>
@@ -1418,7 +1434,7 @@ const UI = {
         if (!e) return '';
         const reps = Array.isArray(e.reps) ? `${e.reps[0]}-${e.reps[1]}` : e.reps;
         const unit = e.type === 'time' ? ' ' + e.timeUnit : ' 次';
-        return `<div class="pd-row"><span class="pd-cn">${e.cn}${e.optional ? ' <span class="pd-opt">可选</span>' : ''}</span><span class="pd-spec">${e.sets} × ${reps}${unit}</span></div>`;
+        return `<div class="pd-row"><span class="pd-cn">${e.cn}${e.optional ? ' <span class="pd-opt">' + I18n.t('ee.optional') + '</span>' : ''}</span><span class="pd-spec">${e.sets} × ${reps}${unit}</span></div>`;
       }).join('');
     } else if (type === 'CARDIO') {
       const cpl = Logic.cardioTemplateFor(i);
@@ -1430,14 +1446,14 @@ const UI = {
     } else {
       const fr = Logic.fullRestTemplateFor();
       body = `<div class="pd-row"><span class="pd-cn">${fr.note}</span></div>` +
-        (fr.optional || []).map(o => `<div class="pd-row"><span class="pd-cn">可选：${o}</span></div>`).join('');
+        (fr.optional || []).map(o => `<div class="pd-row"><span class="pd-cn">${I18n.t('ee.optional')}：${o}</span></div>`).join('');
     }
     sheet.innerHTML = `
       <div class="sheet">
         <div class="sheet-title">${days[i]} · ${m.cn}</div>
-        <div class="sheet-sub">${m.en} · 仅展示当天安排</div>
+        <div class="sheet-sub">${I18n.lang === 'zh-CN' ? m.en : m.en} · 仅展示当天安排</div>
         <div class="pd-list">${body}</div>
-        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">关闭</button>
+        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('guide.close')}</button>
       </div>`;
     document.body.appendChild(sheet);
     sheet.querySelectorAll('[data-sheet-cancel]').forEach(b => b.onclick = () => sheet.remove());
@@ -1507,21 +1523,21 @@ const UI = {
         <div class="gs-sec">VIDEO GUIDE</div>
         ${this._videoBlock(ex)}
 
-        <div class="gs-sec">KEY POINTS</div>
-        <div class="gs-list">${(ex.points || []).map(p => `<div class="gs-li"><span class="gs-dot"></span>${p}</div>`).join('') || '<div class="muted">暂无要点。</div>'}</div>
+        <div class="gs-sec">${I18n.t('guide.keyPoints')}</div>
+        <div class="gs-list">${(ex.points || []).map(p => `<div class="gs-li"><span class="gs-dot"></span>${p}</div>`).join('') || `<div class="muted">暂无要点。</div>`}</div>
 
-        <div class="gs-sec">COMMON MISTAKES</div>
-        <div class="gs-list">${(ex.mistakes || []).map(p => `<div class="gs-li"><span class="gs-x">✕</span>${p}</div>`).join('') || '<div class="muted">暂无常见错误。</div>'}</div>
+        <div class="gs-sec">${I18n.t('guide.commonMistakes')}</div>
+        <div class="gs-list">${(ex.mistakes || []).map(p => `<div class="gs-li"><span class="gs-x">✕</span>${p}</div>`).join('') || `<div class="muted">暂无常见错误。</div>`}</div>
 
-        <div class="gs-sec">ALTERNATIVES</div>
-        <div class="gs-alts">${alts.length ? alts.map(a => `<button class="gs-alt" data-guide-alt="${a}">${EXERCISES[a].cn}<span>${EXERCISES[a].en}</span></button>`).join('') : '<div class="muted">暂无替代动作。</div>'}</div>
+        <div class="gs-sec">${I18n.t('guide.alternatives')}</div>
+        <div class="gs-alts">${alts.length ? alts.map(a => `<button class="gs-alt" data-guide-alt="${a}">${EXERCISES[a].cn}<span>${EXERCISES[a].en}</span></button>`).join('') : `<div class="muted">${I18n.t('guide.noAlts')}</div>`}</div>
 
         ${ex.type !== 'time' && ex.type !== 'reps' ? this._weightBlock(id, ex) : ''}
 
-        <div class="gs-sec">MY PERFORMANCE</div>
+        <div class="gs-sec">${I18n.t('guide.myPerformance')}</div>
         ${this._perfBlock(id, ex)}
 
-        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:14px;">关闭</button>
+        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:14px;">${I18n.t('guide.close')}</button>
       </div>`;
   },
 
@@ -1578,13 +1594,13 @@ const UI = {
     const disp = (v) => v !== null && v !== undefined ? `${v} ${unit}` : '—';
     const sugText = sug && sug.text ? sug.text.split('。')[0] : '';
     return `
-      <div class="gs-sec">MY WEIGHT</div>
+      <div class="gs-sec">${I18n.t('guide.myWeight')}</div>
       <div class="gs-weight-card">
-        <div class="gs-w-row"><span class="gs-w-l">当前默认</span><span class="gs-w-v">${disp(userDefault)}</span></div>
-        <div class="gs-w-row"><span class="gs-w-l">上次</span><span class="gs-w-v">${lastRec ? `${lastRec.weight} ${unit} × ${lastRec.reps} 次` : '—'}</span></div>
-        <div class="gs-w-row"><span class="gs-w-l">历史最佳</span><span class="gs-w-v">${best ? `${best.weight} ${unit} × ${best.reps} 次` : '—'}</span></div>
+        <div class="gs-w-row"><span class="gs-w-l">${I18n.t('guide.currentDefault')}</span><span class="gs-w-v">${disp(userDefault)}</span></div>
+        <div class="gs-w-row"><span class="gs-w-l">${I18n.t('guide.lastSession')}</span><span class="gs-w-v">${lastRec ? `${lastRec.weight} ${unit} × ${lastRec.reps} 次` : '—'}</span></div>
+        <div class="gs-w-row"><span class="gs-w-l">${I18n.t('guide.bestEver')}</span><span class="gs-w-v">${best ? `${best.weight} ${unit} × ${best.reps} 次` : '—'}</span></div>
         ${sugText ? `<div class="gs-w-sug">${sugText} · 建议 <b>${sug.newWeight} ${unit}</b></div>` : ''}
-        <button class="btn btn-ghost gs-w-edit" data-wt-edit="${id}" style="margin-top:12px;">编辑默认重量</button>
+        <button class="btn btn-ghost gs-w-edit" data-wt-edit="${id}" style="margin-top:12px;">${I18n.t('guide.editDefaultWeight')}</button>
       </div>`;
   },
 
@@ -1610,7 +1626,7 @@ const UI = {
         wSheet.className = 'ws-mask';
         wSheet.innerHTML = `
           <div class="ws-sheet">
-            <div class="ws-title">设置默认工作重量</div>
+            <div class="ws-title">${I18n.t('guide.setDefaultWeight')}</div>
             <div class="ws-input-row">
               <input class="ws-input" id="wt-num" type="number" value="${currentW}" step="0.5" min="0" placeholder="0" />
               <span class="ws-unit">KG</span>
@@ -1701,29 +1717,29 @@ const UI = {
         <div class="prog-stat"><div class="ps-n">${d.totalSessions||0}</div><div class="ps-l">累计训练</div></div>
       </div>
 
-      <div class="prog-section-t">THIS WEEK · 训练类型</div>
+      <div class="prog-section-t">${I18n.t('stats.thisWeek')} · 训练类型</div>
       <div class="week-type-stats">
         ${[['力量', 'STRENGTH', wc.strength], ['有氧', 'CARDIO', wc.cardio], ['主动恢复', 'ACTIVE RECOVERY', wc.activeRecovery], ['完全恢复', 'FULL REST', wc.fullRest]].map(([cn, en, v]) => `
           <div class="wt-row">
-            <span class="wt-k">${cn}<span class="wt-e">${en}</span></span>
+            <span class="wt-k">${cn}<span class="wt-e">${I18n.t('stats.' + en.toLowerCase().replace(' ', ''))}</span></span>
             <span class="wt-bar"><i style="width:${Math.round(v.planned ? v.done / v.planned * 100 : 0)}%"></i></span>
             <span class="wt-v">${v.done} / ${v.planned}</span>
           </div>`).join('')}
       </div>
 
-      <div class="prog-section-t">THIS MONTH</div>
+      <div class="prog-section-t">${I18n.t('stats.thisMonth')}</div>
       <div class="month-type-stats">
-        <div class="prog-stat"><div class="ps-n">${mc.strength}</div><div class="ps-l">STRENGTH</div></div>
-        <div class="prog-stat"><div class="ps-n">${mc.cardio}</div><div class="ps-l">CARDIO</div></div>
-        <div class="prog-stat"><div class="ps-n">${mc.activeRecovery}</div><div class="ps-l">ACTIVE RECOVERY</div></div>
-        <div class="prog-stat"><div class="ps-n">${mc.fullRest}</div><div class="ps-l">FULL REST</div></div>
+        <div class="prog-stat"><div class="ps-n">${mc.strength}</div><div class="ps-l">${I18n.t('stats.strength')}</div></div>
+        <div class="prog-stat"><div class="ps-n">${mc.cardio}</div><div class="ps-l">${I18n.t('stats.cardio')}</div></div>
+        <div class="prog-stat"><div class="ps-n">${mc.activeRecovery}</div><div class="ps-l">${I18n.t('stats.activeRecovery')}</div></div>
+        <div class="prog-stat"><div class="ps-n">${mc.fullRest}</div><div class="ps-l">${I18n.t('stats.fullRest')}</div></div>
       </div>
 
-      ${progEx.length ? `<div class="prog-section-t">动作表现</div>` + progEx.map(id => this._exProgCard(id)).join('') : `
-        <div class="prog-section-t">动作表现</div>
-        <div class="reminder"><div class="dot"></div><div class="txt">还没有动作记录。完成几次训练后，这里会出现每个动作的重量趋势。</div></div>`}
+      ${progEx.length ? `<div class="prog-section-t">${I18n.t('stats.exercisePerformance')}</div>` + progEx.map(id => this._exProgCard(id)).join('') : `
+        <div class="prog-section-t">${I18n.t('stats.exercisePerformance')}</div>
+        <div class="reminder"><div class="dot"></div><div class="txt">${I18n.t('stats.noDataHint')}</div></div>`}
 
-      <div class="prog-section-t">身体变化</div>
+      <div class="prog-section-t">${I18n.t('stats.bodyProgress')}</div>
       <div class="body-prog">
         ${this._bodyRow('体重', body.weight, 'kg')}
         ${this._bodyRow('体脂率', body.bodyFat, '%')}
@@ -1735,10 +1751,10 @@ const UI = {
       </div>
 
       <div class="measure-form">
-        <div class="prog-section-t" style="margin:0 0 12px;">记录身体数据</div>
+        <div class="prog-section-t" style="margin:0 0 12px;">${I18n.t('stats.recordBody')}</div>
         ${[['weight','体重'],['bodyFat','体脂率'],['waist','腰围'],['chest','胸围'],['arm','臂围'],['hip','臀围'],['thigh','大腿围']].map(([k,l])=>`
           <div class="mf-row"><label>${l}${['bodyFat'].includes(k)?'(%)':'(cm/kg)'}</label><input type="number" data-measure="${k}" value="${body[k]||''}"></div>`).join('')}
-        <button class="btn btn-dark btn-sm" data-save-measure style="margin-top:6px;">保存记录</button>
+        <button class="btn btn-dark btn-sm" data-save-measure style="margin-top:6px;">${I18n.t('stats.save')}</button>
       </div>
     `;
 
@@ -1752,14 +1768,14 @@ const UI = {
         d2.measures = m;
         d2.bodyLog.push(Object.assign({ dateKey: Store.todayKey() }, m));
         Store.save();
-        this._toast('身体数据已保存。');
+        this._toast(I18n.t('stats.bodySaved'));
       };
     });
     this._bindTabbar(sc);
   },
 
   _bodyRow(name, val, unit) {
-    if (!val) return `<div class="bp-row"><span class="bp-name">${name}</span><span class="bp-val muted">未记录</span></div>`;
+    if (!val) return `<div class="bp-row"><span class="bp-name">${name}</span><span class="bp-val muted">${I18n.t('stats.noRecord')}</span></div>`;
     return `<div class="bp-row"><span class="bp-name">${name}</span><span class="bp-val">${val} <span style="color:var(--faint);font-size:12px;">${unit}</span></span></div>`;
   },
 
@@ -1780,8 +1796,8 @@ const UI = {
       <div class="ex-prog">
         <div class="ep-name">${ex.en}</div>
         <div class="ep-cn">${ex.cn}</div>
-        <div class="ep-row"><span class="k">当前${isTime ? '时长' : '工作重量'}</span><span class="v accent">${fmt(last.weight, last.reps)}</span></div>
-        <div class="ep-row"><span class="k">历史最佳</span><span class="v">${fmt(best.weight, best.reps)}</span></div>
+        <div class="ep-row"><span class="k">${isTime ? '当前时长' : I18n.t('weight.workingWeight')}</span><span class="v accent">${fmt(last.weight, last.reps)}</span></div>
+        <div class="ep-row"><span class="k">${I18n.t('guide.bestEver')}</span><span class="v">${fmt(best.weight, best.reps)}</span></div>
         ${isTime ? '' : `<div class="ep-row"><span class="k">估算 1RM</span><span class="v">${e1rm ? '约 ' + e1rm + 'kg' : '—'}</span></div>`}
         <div class="ep-chart">
           <div class="ep-trend">
@@ -1800,6 +1816,7 @@ const UI = {
     const p = d.profile || {};
     const voice = d.voice;
     const rivalOn = d.rivalMode !== false;
+    const currentLang = d.lang || 'zh-CN';
     const active = [d.totalSessions || 0, d.streak || 0, Logic.totalSets() || 0];
     const goalName = (DB.GOALS && p.goal && DB.GOALS[p.goal]) ? DB.GOALS[p.goal].name : '';
     const levelName = (DB.LEVELS && p.level && DB.LEVELS[p.level]) ? DB.LEVELS[p.level].name : '';
@@ -1821,74 +1838,85 @@ const UI = {
           </div>
         </div>
         <div class="profile-stats">
-          <div class="ps-mini"><div class="n">${active[0]}</div><div class="l">训练</div></div>
-          <div class="ps-mini"><div class="n">${active[1]}</div><div class="l">连续</div></div>
-          <div class="ps-mini"><div class="n">${active[2]}</div><div class="l">组数</div></div>
+          <div class="ps-mini"><div class="n">${active[0]}</div><div class="l">${I18n.t('stats.totalSessions')}</div></div>
+          <div class="ps-mini"><div class="n">${active[1]}</div><div class="l">${I18n.t('home.streak')}</div></div>
+          <div class="ps-mini"><div class="n">${active[2]}</div><div class="l">${I18n.t('mine.profile')}</div></div>
         </div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">MY TRAINING PLAN</div>
+        <div class="mg-h">${I18n.t('mine.trainingPlan')}</div>
         <div class="cur-plan-card">
           <div class="cp-head">
-            <span class="cp-kicker">CURRENT PLAN</span>
+            <span class="cp-kicker">${I18n.t('mine.currentPlan')}</span>
             ${cpTag}
           </div>
           <div class="cp-name">${planInfo.name}</div>
           <div class="cp-sub">${planInfo.subtitle}${planInfo.type ? '' : ' · 尚未选择方案'}</div>
         </div>
         <div class="cp-actions">
-          <button class="btn btn-dark btn-sm" data-go-view-plan>查看当前方案</button>
-          <button class="btn btn-dark btn-sm" data-go-edit-plan>编辑当前方案</button>
-          <button class="btn btn-accent btn-sm" data-go-change-plan>更换训练方案</button>
+          <button class="btn btn-dark btn-sm" data-go-view-plan>${I18n.t('mine.viewPlan')}</button>
+          <button class="btn btn-dark btn-sm" data-go-edit-plan>${I18n.t('mine.editPlan')}</button>
+          <button class="btn btn-accent btn-sm" data-go-change-plan>${I18n.t('mine.changePlan')}</button>
         </div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">TRAINING SCHEDULE</div>
+        <div class="mg-h">${I18n.t('mine.schedule')}</div>
         <div class="sched-summary">
           <div class="ss-row">
-            <span class="ss-k">每周训练安排</span>
-            <span class="ss-e" data-go-schedule>编辑 <span class="arrow">›</span></span>
+            <span class="ss-k">${I18n.t('mine.schedule')}</span>
+            <span class="ss-e" data-go-schedule>${I18n.t('mine.schedule.edit')} <span class="arrow">›</span></span>
           </div>
           <div class="ss-stats">
-            <div class="ss-stat"><div class="n">${sched.strength}</div><div class="l">力量</div></div>
-            <div class="ss-stat"><div class="n">${sched.cardio}</div><div class="l">有氧</div></div>
-            <div class="ss-stat"><div class="n">${sched.activeRecovery}</div><div class="l">主动恢复</div></div>
-            <div class="ss-stat"><div class="n">${sched.fullRest}</div><div class="l">完全恢复</div></div>
+            <div class="ss-stat"><div class="n">${sched.strength}</div><div class="l">${I18n.t('stats.strength')}</div></div>
+            <div class="ss-stat"><div class="n">${sched.cardio}</div><div class="l">${I18n.t('stats.cardio')}</div></div>
+            <div class="ss-stat"><div class="n">${sched.activeRecovery}</div><div class="l">${I18n.t('stats.activeRecovery')}</div></div>
+            <div class="ss-stat"><div class="n">${sched.fullRest}</div><div class="l">${I18n.t('stats.fullRest')}</div></div>
           </div>
         </div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">EXERCISE CONTENT</div>
-        <div class="menu-row"><div class="mr-l">编辑训练内容</div><div class="mr-r" data-go-exercise-edit>动作 / 组数 / 次数 / 时间 <span class="arrow">›</span></div></div>
+        <div class="mg-h">${I18n.t('mine.exerciseContent')}</div>
+        <div class="menu-row"><div class="mr-l">${I18n.t('mine.exerciseContent')}</div><div class="mr-r" data-go-exercise-edit>${I18n.t('mine.exerciseContentHint')} <span class="arrow">›</span></div></div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">TRAINING VOICE</div>
+        <div class="mg-h">${I18n.t('mine.trainingVoice')}</div>
         <div class="voice-select">
-          ${[['standard','STANDARD','标准模式'],['motivational','MOTIVATIONAL','鼓励模式'],['yan','YAN MODE','妍宝模式']].map(([k,en,cn])=>`
+          ${[['standard','STANDARD',I18n.t('mine.voice.standard')],['motivational','MOTIVATIONAL',I18n.t('mine.voice.motivational')],['yan','YAN MODE',I18n.t('mine.voice.yan')]].map(([k,en,cn])=>`
             <div class="vs ${voice===k?'selected':''}" data-voice="${k}"><div class="vs-t">${en}</div><div class="vs-s">${cn}</div></div>`).join('')}
         </div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">RIVAL MODE</div>
+        <div class="mg-h">${I18n.t('mine.rivalMode')}</div>
         <div class="menu-row">
-          <div class="mr-l">对手刺激</div>
+          <div class="mr-l">${I18n.t('mine.rivalMode')}</div>
           <div class="mr-r rm-toggle ${rivalOn ? 'on' : ''}" data-rival-toggle>${rivalOn ? 'ON' : 'OFF'}</div>
         </div>
-        <div class="mr-hint">偶尔让 0哥 / 签哥 / 小王总 出来添把火。关闭后首页不再出现对手文案。</div>
+        <div class="mr-hint">${I18n.t('mine.rivalHint')}</div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">档案</div>
-        <div class="menu-row"><div class="mr-l">身体数据</div><div class="mr-r" data-go-body>编辑 <span class="arrow">›</span></div></div>
+        <div class="mg-h">${I18n.t('lang.title').toUpperCase()}</div>
+        <div class="menu-row">
+          <div class="mr-l">${I18n.t('lang.title')}</div>
+          <div class="lang-row">
+            <div class="lang-opt ${currentLang==='zh-CN'?'selected':''}" data-lang="zh-CN">${I18n.t('lang.zhCN')}</div>
+            <div class="lang-opt ${currentLang==='en-US'?'selected':''}" data-lang="en-US">${I18n.t('lang.enUS')}</div>
+          </div>
+        </div>
       </div>
 
       <div class="menu-group">
-        <div class="mg-h">成就</div>
+        <div class="mg-h">${I18n.t('mine.profile')}</div>
+        <div class="menu-row"><div class="mr-l">${I18n.t('mine.bodyData')}</div><div class="mr-r" data-go-body>${I18n.t('mine.bodyData.edit')} <span class="arrow">›</span></div></div>
+      </div>
+
+      <div class="menu-group">
+        <div class="mg-h">${I18n.t('mine.achievements')}</div>
         ${this._ach('连续 7 次训练', d.streak>=7, 'HIDDEN MESSAGE', '能坚持到这里已经很棒啦。慢慢练。身体越来越好最重要。——妍宝')}
         ${this._ach('累计 10 次训练', d.totalSessions>=10, 'SYSTEM MESSAGE', '连续完成 10 次训练。妍宝：不错嘛，继续。别得意。')}
         ${this._ach('累计 30 次训练', d.totalSessions>=30, '坚持一个月', '别急着看自己变了多少。先承认：你真的坚持下来了。')}
@@ -1897,22 +1925,31 @@ const UI = {
       </div>
 
       <div class="from-yan ${d.yanOpened>0?'revealed':''}" data-from-yan>
-        <div class="fh-k">FROM YAN</div>
-        ${d.yanOpened>0 ? `<div class="fh-message">${this._lastYanMsg()}</div><div class="fh-sign">——妍宝</div>` : '<div class="fh-message" style="margin-top:8px;">有一句话想对你说。</div>'}
+        <div class="fh-k">${I18n.t('mine.fromYan')}</div>
+        ${d.yanOpened>0 ? `<div class="fh-message">${this._lastYanMsg()}</div><div class="fh-sign">——妍宝</div>` : `<div class="fh-message" style="margin-top:8px;">${I18n.t('mine.fromYanHint')}</div>`}
       </div>
 
-      <button class="reset-btn" data-reset>重置所有数据</button>
+      <button class="reset-btn" data-reset>${I18n.t('mine.resetData')}</button>
     `;
 
     sc.querySelectorAll('[data-voice]').forEach(v => {
       v.onclick = () => { d.voice = v.dataset.voice; Persona.setVoice(d.voice); Store.save(); this.renderMine(); };
     });
-    // RIVAL MODE 开关（默认 ON；关闭后首页不出现对手刺激文案）
+    // RIVAL MODE 开关
     sc.querySelectorAll('[data-rival-toggle]').forEach(t => {
       t.onclick = () => {
         d.rivalMode = !(d.rivalMode !== false);
         Store.save();
         this.renderMine();
+      };
+    });
+    // 语言切换（立即生效，重渲染整个应用）
+    sc.querySelectorAll('[data-lang]').forEach(lb => {
+      lb.onclick = () => {
+        const newLang = lb.dataset.lang;
+        I18n.setLang(newLang);
+        // 立即重渲染整应用（不刷新页面）
+        this.renderApp();
       };
     });
     sc.querySelectorAll('[data-from-yan]').forEach(f => {
@@ -1921,13 +1958,13 @@ const UI = {
         const msg = Persona.fromYan();
         d.lastYanMsg = msg;
         Store.save();
-        f.innerHTML = `<div class="fh-k">FROM YAN</div><div class="fh-message">${msg}</div><div class="fh-sign">——妍宝</div>`;
+        f.innerHTML = `<div class="fh-k">${I18n.t('mine.fromYan')}</div><div class="fh-message">${msg}</div><div class="fh-sign">——妍宝</div>`;
         f.classList.add('revealed');
       };
     });
     sc.querySelectorAll('[data-reset]').forEach(r => {
       r.onclick = () => {
-        if (confirm('确定要清空所有数据并重新建档吗？')) {
+        if (confirm(I18n.t('mine.resetConfirm'))) {
           Store.reset();
           this.renderOnboard();
         }
@@ -1942,7 +1979,6 @@ const UI = {
     sc.querySelectorAll('[data-go-exercise-edit]').forEach(b => {
       b.onclick = () => { this.showExerciseEditor(); };
     });
-    // MY TRAINING PLAN 模块：查看 / 编辑 / 更换
     sc.querySelectorAll('[data-go-view-plan]').forEach(b => {
       b.onclick = () => { this.switchTab('plan'); };
     });
@@ -1969,40 +2005,40 @@ const UI = {
           <div class="brand-row">
             <button class="icon-btn" data-cp-back>←</button>
             <div>
-              <div class="brand" style="font-size:22px;">CHANGE PLAN</div>
-              <div class="brand-sub">更换训练方案</div>
+              <div class="brand" style="font-size:22px;">${I18n.t('mine.changePlan')}</div>
+              <div class="brand-sub">${I18n.t('mine.changePlan')}</div>
             </div>
           </div>
         </div>
-        <div class="sched-desc">切换方案不会删除任何训练记录、重量、身体数据与历史。MING PLAN 正式训练表永久内置，随时可以恢复原版。</div>
+        <div class="sched-desc">${I18n.t('plan.switchHint')}</div>
 
         <div class="pc-card pc-ming ${isMing ? 'current' : ''}">
           <div class="pcc-head">
-            <span class="pcc-kicker">MING PLAN</span>
-            <span class="pcc-sub">明哥专属</span>
+            <span class="pcc-kicker">${I18n.t('plan.mingName')}</span>
+            <span class="pcc-sub">${I18n.t('plan.mingPlan')}</span>
             <span class="pcc-badge rec">RECOMMENDED</span>
-            ${isMing ? '<span class="pcc-badge cur">CURRENT</span>' : ''}
+            ${isMing ? `<span class="pcc-badge cur">${I18n.t('plan.current')}</span>` : ''}
           </div>
-          <div class="pcc-name">MING PLAN</div>
-          <div class="pcc-desc">明哥正式训练表：力量 3 天 · 有氧 2 天 · 主动恢复 1 天 · 完全恢复 1 天。内置原版，永不删除。</div>
-          <button class="btn ${isMing ? 'btn-dark' : 'btn-accent'}" data-cp-ming style="width:100%;">${isMing ? '恢复原版 MING PLAN' : '切回 MING PLAN'} →</button>
+          <div class="pcc-name">${I18n.t('plan.mingName')}</div>
+          <div class="pcc-desc">${I18n.t('ob.mingPlanDesc')}</div>
+          <button class="btn ${isMing ? 'btn-dark' : 'btn-accent'}" data-cp-ming style="width:100%;">${isMing ? I18n.t('plan.restoreSuccess').replace('已恢复原版 MING PLAN。', I18n.t('plan.mingName') + ' ' + I18n.t('plan.current')) : I18n.t('plan.switchToMing')}</button>
         </div>
 
         <div class="pc-card pc-smart ${isSmart ? 'current' : ''}">
           <div class="pcc-head">
-            <span class="pcc-kicker">SMART PLAN</span>
-            <span class="pcc-sub">智能定制</span>
+            <span class="pcc-kicker">${I18n.t('plan.smartName')}</span>
+            <span class="pcc-sub">${I18n.t('plan.smartPlan')}</span>
             <span class="pcc-badge">CUSTOM</span>
-            ${isSmart ? '<span class="pcc-badge cur">CURRENT</span>' : ''}
+            ${isSmart ? `<span class="pcc-badge cur">${I18n.t('plan.current')}</span>` : ''}
           </div>
-          <div class="pcc-name">${smart ? smart.name : 'SMART PLAN'}</div>
+          <div class="pcc-name">${smart ? smart.name : I18n.t('plan.smartName')}</div>
           <div class="pcc-desc">${smart
-            ? `按你的目标与条件生成：每周 ${smart.daysPerWeek} 练 · 每次 ${smart.duration} min · ${smart.week} 周。`
-            : '根据目标、部位、经验、时间、环境与身体状态，一步步生成专属方案。'}</div>
-          <button class="btn ${isSmart ? 'btn-dark' : 'btn-accent'}" data-cp-smart style="width:100%;">${!smart ? '生成 SMART PLAN →' : isSmart ? '重新生成 SMART PLAN' : '启用 SMART PLAN →'}</button>
+            ? I18n.t('ob.smartPlanDesc2', [smart.daysPerWeek, smart.duration, smart.week])
+            : I18n.t('ob.smartPlanDesc')}</div>
+          <button class="btn ${isSmart ? 'btn-dark' : 'btn-accent'}" data-cp-smart style="width:100%;">${!smart ? I18n.t('plan.startSmartPlan') : isSmart ? I18n.t('plan.regenerateSmart') : I18n.t('plan.enablePlan')}</button>
         </div>
 
-        <button class="btn btn-ghost" data-cp-back2 style="width:100%;margin-top:8px;">返回</button>
+        <button class="btn btn-ghost" data-cp-back2 style="width:100%;margin-top:8px;">${I18n.t('ob.back')}</button>
       </div>`;
 
     const back = () => { this.renderApp(); this.switchTab('mine'); };
@@ -2030,23 +2066,22 @@ const UI = {
     sheet.className = 'sheet-mask';
     sheet.innerHTML = `
       <div class="sheet">
-        <div class="sheet-title">恢复原版 MING PLAN？</div>
+        <div class="sheet-title">${I18n.t('plan.restore')}</div>
         <div class="sheet-sub">恢复后将以内置正式训练表为准（力量 3 天 · 有氧 2 天 · 主动恢复 1 天 · 完全恢复 1 天）。你的训练记录、重量、身体数据与历史全部保留，不会被删除。</div>
-        <button class="btn btn-accent" data-confirm-ming style="width:100%;">确认恢复</button>
-        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">再想想</button>
+        <button class="btn btn-accent" data-confirm-ming style="width:100%;">${I18n.t('plan.restoreConfirm')}</button>
+        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('plan.restoreCancel')}</button>
       </div>`;
     document.body.appendChild(sheet);
     sheet.querySelector('[data-confirm-ming]').onclick = () => {
       sheet.remove();
       try {
         Logic.restoreMingPlan();
-        // CHANGE PLAN 视图里没有 #screen-mine，必须重建应用再切回 MINE
         this.renderApp();
         this.switchTab('mine');
-        this._toast('已恢复原版 MING PLAN。');
+        this._toast(I18n.t('plan.restoreSuccess'));
       } catch (e) {
         console.error('[MING FIT] restoreMingPlan failed:', e);
-        this._toast('恢复时出了点问题，请重试。');
+        this._toast(I18n.t('plan.restoreFailed'));
       }
     };
     sheet.querySelector('[data-sheet-cancel]').onclick = () => sheet.remove();
@@ -2067,19 +2102,19 @@ const UI = {
   /* ---------- 编辑训练内容（力量日动作 / 组数 / 次数 / 时间） ---------- */
   showExerciseEditor() {
     this.view = 'exercise-editor';
-    const days = [['MON', '周一', 0], ['WED', '周三', 2], ['FRI', '周五', 4]];
+    const days = [['MON', I18n.t('ee.mon'), 0], ['WED', I18n.t('ee.wed'), 2], ['FRI', I18n.t('ee.fri'), 4]];
     this.app.innerHTML = `
       <div class="schedule-screen">
         <div class="screen-header">
           <div class="brand-row">
             <button class="icon-btn" data-ee-back>←</button>
             <div>
-              <div class="brand" style="font-size:22px;">EXERCISE CONTENT</div>
-              <div class="brand-sub">编辑训练内容</div>
+              <div class="brand" style="font-size:22px;">${I18n.t('editEx.title')}</div>
+              <div class="brand-sub">${I18n.t('mine.exerciseContent')}</div>
             </div>
           </div>
         </div>
-        <div class="sched-desc">选择要编辑的力量日，调整动作、组数、次数或时长。修改保存为你的长期模板。</div>
+        <div class="sched-desc">${I18n.t('editEx.desc')}</div>
         <div class="sched-list">
           ${days.map(([en, cn, idx]) => {
             const tpl = Logic.strengthTemplateFor(idx);
@@ -2087,11 +2122,11 @@ const UI = {
             <div class="sched-row" data-ee-day="${idx}">
               <div class="sr-day"><span class="sr-en">${en}</span><span class="sr-cn">${cn}</span></div>
               <div class="sr-type strength"><span class="st-en">${tpl.name}</span><span class="st-cn">${tpl.dayCn || tpl.cn}</span></div>
-              <div class="sr-edit">编辑 ›</div>
+              <div class="sr-edit">${I18n.t('ee.edit')}</div>
             </div>`;
           }).join('')}
         </div>
-        <button class="btn btn-ghost" data-ee-back style="margin-top:20px;width:100%;">完成</button>
+        <button class="btn btn-ghost" data-ee-back style="margin-top:20px;width:100%;">${I18n.t('ee.done')}</button>
       </div>`;
     const goBack = () => { this.renderApp(); this.switchTab('mine'); };
     this.app.querySelectorAll('[data-ee-back]').forEach(b => b.onclick = goBack);
@@ -2104,7 +2139,7 @@ const UI = {
   _editStrengthDay(idx) {
     const d = Store.get();
     this.view = 'exercise-editor';
-    const daysCn = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const daysCn = [I18n.t('sched.mon'), I18n.t('sched.tue'), I18n.t('sched.wed'), I18n.t('sched.thu'), I18n.t('sched.fri'), I18n.t('sched.sat'), I18n.t('sched.sun')];
     const base = STRENGTH_TEMPLATES[idx] || STRENGTH_TEMPLATES[0];
     const custom = d.strengthTemplate && d.strengthTemplate[idx];
     const exIds = (custom && custom.exercises && custom.exercises.length) ? custom.exercises : base.exercises;
@@ -2116,12 +2151,12 @@ const UI = {
       const ov = ovs[id] || {};
       const sets = ov.sets || ex.sets;
       const repMax = (ov.reps && ov.reps[1]) || (Array.isArray(ex.reps) ? ex.reps[1] : ex.reps);
-      const unit = ex.type === 'time' ? (ex.timeUnit || 'sec') : '次';
+      const unit = ex.type === 'time' ? (ex.timeUnit || 'sec') : I18n.t('ee.repsLabel');
       return `
         <div class="ee-row" data-ee-ex="${id}">
-          <div class="ee-name">${ex.cn}${ex.optional ? ' <span class="pd-opt">可选</span>' : ''}</div>
+          <div class="ee-name">${ex.cn}${ex.optional ? ' <span class="pd-opt">' + I18n.t('ee.optional') + '</span>' : ''}</div>
           <div class="ee-controls">
-            <div class="ee-ctrl"><span class="ee-lbl">组</span><div class="ee-stepper" data-ee-k="sets"><span class="ee-s" data-ee-dec>−</span><span class="ee-v">${sets}</span><span class="ee-s" data-ee-inc>+</span></div></div>
+            <div class="ee-ctrl"><span class="ee-lbl">${I18n.t('ee.setsLabel')}</span><div class="ee-stepper" data-ee-k="sets"><span class="ee-s" data-ee-dec>−</span><span class="ee-v">${sets}</span><span class="ee-s" data-ee-inc>+</span></div></div>
             <div class="ee-ctrl"><span class="ee-lbl">${unit}</span><div class="ee-stepper" data-ee-k="reps"><span class="ee-s" data-ee-dec>−</span><span class="ee-v">${repMax}</span><span class="ee-s" data-ee-inc>+</span></div></div>
             <div class="ee-del" data-ee-del>✕</div>
           </div>
@@ -2139,14 +2174,14 @@ const UI = {
             </div>
           </div>
         </div>
-        <div class="sched-desc">调整动作的组数、次数或时长。删除多余动作，或点击下方添加动作。</div>
+        <div class="sched-desc">${I18n.t('ee.desc')}</div>
         <div class="ee-list" id="ee-list">
           ${exIds.map(rowHtml).join('')}
         </div>
-        <button class="btn btn-ghost" data-ee-add style="margin-top:14px;width:100%;">+ 添加动作</button>
+        <button class="btn btn-ghost" data-ee-add style="margin-top:14px;width:100%;">${I18n.t('ee.addEx')}</button>
         <div class="step-nav" style="margin-top:20px;">
-          <button class="btn btn-ghost" data-ee-back2>取消</button>
-          <button class="btn btn-accent" data-ee-save>保存修改</button>
+          <button class="btn btn-ghost" data-ee-back2>${I18n.t('weight.cancel')}</button>
+          <button class="btn btn-accent" data-ee-save>${I18n.t('ee.saveChanges')}</button>
         </div>
       </div>`;
 
@@ -2174,13 +2209,13 @@ const UI = {
         sheet.className = 'sheet-mask';
         sheet.innerHTML = `
           <div class="sheet">
-            <div class="sheet-title">添加动作</div>
-            <div class="sheet-sub">从动作库选择（${Object.keys(EXERCISES).length} 个动作）</div>
+            <div class="sheet-title">${I18n.t('ee.addTitle')}</div>
+            <div class="sheet-sub">${I18n.t('ee.addHint', [Object.keys(EXERCISES).length])}</div>
             <div class="pd-list" style="max-height:46vh;overflow-y:auto;">
               ${Object.entries(EXERCISES).filter(([id]) => !have.includes(id)).map(([id, ex]) => `
                 <div class="pd-row" data-ee-pick="${id}"><span class="pd-cn">${ex.cn}</span><span class="pd-spec">${ex.en} · ${ex.muscle}</span></div>`).join('')}
             </div>
-            <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">取消</button>
+            <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('ee.cancel')}</button>
           </div>`;
         document.body.appendChild(sheet);
         sheet.querySelectorAll('[data-ee-pick]').forEach(p => {
@@ -2193,11 +2228,11 @@ const UI = {
             const div = document.createElement('div');
             div.innerHTML = `
               <div class="ee-row" data-ee-ex="${id}">
-                <div class="ee-name">${ex.cn}${ex.optional ? ' <span class="pd-opt">可选</span>' : ''}</div>
+                <div class="ee-name">${ex.cn}${ex.optional ? ' <span class="pd-opt">' + I18n.t('ee.optional') + '</span>' : ''}</div>
                 <div class="ee-controls">
-                  <div class="ee-ctrl"><span class="ee-lbl">组</span><div class="ee-stepper" data-ee-k="sets"><span class="ee-s" data-ee-dec>−</span><span class="ee-v">${sets}</span><span class="ee-s" data-ee-inc>+</span></div></div>
+                  <div class="ee-ctrl"><span class="ee-lbl">${I18n.t('ee.rowSets')}</span><div class="ee-stepper" data-ee-k="sets"><span class="ee-s" data-ee-dec>−</span><span class="ee-v">${sets}</span><span class="ee-s" data-ee-inc>+</span></div></div>
                   <div class="ee-ctrl"><span class="ee-lbl">${unit}</span><div class="ee-stepper" data-ee-k="reps"><span class="ee-s" data-ee-dec>−</span><span class="ee-v">${repMax}</span><span class="ee-s" data-ee-inc>+</span></div></div>
-                  <div class="ee-del" data-ee-del>✕</div>
+                  <div class="ee-del" data-ee-del>${I18n.t('ee.rowDel')}</div>
                 </div>
               </div>`;
             const row = div.firstElementChild;
@@ -2235,7 +2270,7 @@ const UI = {
           const low = Array.isArray(ex.reps) ? Math.min(ex.reps[0], repMax) : repMax;
           overrides[id] = { sets, reps: [low, repMax] };
         });
-        if (!exIds2.length) { this._toast('至少保留一个动作。'); return; }
+        if (!exIds2.length) { this._toast(I18n.t('ee.toastAtLeastOne')); return; }
         d2.strengthTemplate = d2.strengthTemplate || {};
         d2.strengthTemplate[idx] = {
           name: base.name, cn: base.cn, dayCn: base.dayCn, restNote: base.restNote,
@@ -2243,7 +2278,7 @@ const UI = {
           exercises: exIds2, overrides
         };
         Store.save();
-        this._toast('训练内容已保存。');
+        this._toast(I18n.t('ee.toastSave'));
         this.renderApp();
         this.switchTab('mine');
       };
@@ -2257,8 +2292,8 @@ const UI = {
     const d = Store.get();
     this.view = 'schedule';
     const days = [
-      ['MON', '周一'], ['TUE', '周二'], ['WED', '周三'], ['THU', '周四'],
-      ['FRI', '周五'], ['SAT', '周六'], ['SUN', '周日']
+      ['MON', I18n.t('sched.mon')], ['TUE', I18n.t('sched.tue')], ['WED', I18n.t('sched.wed')], ['THU', I18n.t('sched.thu')],
+      ['FRI', I18n.t('sched.fri')], ['SAT', I18n.t('sched.sat')], ['SUN', I18n.t('sched.sun')]
     ];
     const sched = d.schedule || [];
 
@@ -2268,12 +2303,12 @@ const UI = {
           <div class="brand-row">
             <button class="icon-btn" data-sched-back>←</button>
             <div>
-              <div class="brand" style="font-size:22px;">WEEKLY SCHEDULE</div>
-              <div class="brand-sub">每周训练安排</div>
+              <div class="brand" style="font-size:22px;">${I18n.t('sched.title')}</div>
+              <div class="brand-sub">${I18n.t('sched.title')}</div>
             </div>
           </div>
         </div>
-        <div class="sched-desc">点击任意一天，修改它的训练类型。修改会作为你的长期默认模板保存。</div>
+        <div class="sched-desc">${I18n.t('sched.desc')}</div>
         <div class="sched-list">
           ${days.map(([en, cn], i) => {
             const t = this._typeMeta(sched[i]);
@@ -2281,11 +2316,11 @@ const UI = {
             <div class="sched-row" data-sched-day="${i}">
               <div class="sr-day"><span class="sr-en">${en}</span><span class="sr-cn">${cn}</span></div>
               <div class="sr-type ${t.css}"><span class="st-en">${t.en}</span><span class="st-cn">${t.cn}</span></div>
-              <div class="sr-edit">改 ›</div>
+              <div class="sr-edit">${I18n.t('sched.editTip')} ›</div>
             </div>`;
           }).join('')}
         </div>
-        <button class="btn btn-ghost" data-sched-back style="margin-top:20px;width:100%;">完成</button>
+        <button class="btn btn-ghost" data-sched-back style="margin-top:20px;width:100%;">${I18n.t('sched.done')}</button>
       </div>`;
 
     const goBack = () => {
@@ -2305,7 +2340,7 @@ const UI = {
   // 选择某一天的类型（力量/有氧/主动恢复/完全恢复）
   _schedTypePicker(idx) {
     const d = Store.get();
-    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const days = [I18n.t('sched.mon'), I18n.t('sched.tue'), I18n.t('sched.wed'), I18n.t('sched.thu'), I18n.t('sched.fri'), I18n.t('sched.sat'), I18n.t('sched.sun')];
     const opts = ['STRENGTH', 'CARDIO', 'ACTIVE_RECOVERY', 'FULL_REST'];
     const current = (d.schedule && d.schedule[idx]) || 'FULL_REST';
     // 用一个轻量 bottom-sheet 让用户选择
@@ -2313,9 +2348,9 @@ const UI = {
     sheet.className = 'sheet-mask';
     sheet.innerHTML = `
       <div class="sheet">
-        <div class="sheet-title">${days[idx]} · 训练类型</div>
+        <div class="sheet-title">${days[idx]} · ${I18n.t('sched.pickerTitle')}</div>
         ${opts.map(k => { const m = this._typeMeta(k); return `<div class="sheet-opt ${current === k ? 'sel' : ''}" data-type="${k}"><span class="so-en">${m.en}</span><span class="so-cn">${m.cn}</span></div>`; }).join('')}
-        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">取消</button>
+        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('sched.cancel')}</button>
       </div>`;
     document.body.appendChild(sheet);
     sheet.querySelectorAll('[data-type]').forEach(o => {
@@ -2340,7 +2375,7 @@ const UI = {
     const d = Store.get();
     const dow = new Date().getDay();
     const dayIndex = (dow + 6) % 7;
-    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const days = [I18n.t('adj.day0'), I18n.t('adj.day1'), I18n.t('adj.day2'), I18n.t('adj.day3'), I18n.t('adj.day4'), I18n.t('adj.day5'), I18n.t('adj.day6')];
     const opts = ['STRENGTH', 'CARDIO', 'ACTIVE_RECOVERY', 'FULL_REST'];
 
     const sheet = document.createElement('div');
@@ -2348,17 +2383,18 @@ const UI = {
     const swapDays = [];
     for (let i = 0; i < 7; i++) {
       if (i === dayIndex) continue;
-      swapDays.push([i, days[i], this._typeMeta(Logic.typeFor(i)).cn]);
+      const m = this._typeMeta(Logic.typeFor(i));
+      swapDays.push([i, days[i], I18n.lang === 'zh-CN' ? m.cn : m.en]);
     }
     sheet.innerHTML = `
       <div class="sheet">
-        <div class="sheet-title">调整今天 · ${days[dayIndex]}</div>
-        <div class="sheet-sub">只改本周这次，不改变长期安排。</div>
-        <div class="sheet-h">改为</div>
-        ${opts.map(k => { const m = this._typeMeta(k); return `<div class="sheet-opt" data-adj-type="${k}"><span class="so-en">${m.en}</span><span class="so-cn">${m.cn}</span></div>`; }).join('')}
-        <div class="sheet-h">与其他日期交换</div>
+        <div class="sheet-title">${I18n.t('adj.title', [days[dayIndex]])}</div>
+        <div class="sheet-sub">${I18n.t('adj.sub')}</div>
+        <div class="sheet-h">${I18n.t('adj.changeTo')}</div>
+        ${opts.map(k => { const m = this._typeMeta(k); return `<div class="sheet-opt" data-adj-type="${k}"><span class="so-en">${m.en}</span><span class="so-cn">${I18n.lang === 'zh-CN' ? m.cn : m.en}</span></div>`; }).join('')}
+        <div class="sheet-h">${I18n.t('adj.swapWith')}</div>
         ${swapDays.map(([i, dn, t]) => `<div class="sheet-opt" data-adj-swap="${i}"><span class="so-en">${dn}</span><span class="so-cn">${t} ›</span></div>`).join('')}
-        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">取消</button>
+        <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('adj.cancel')}</button>
       </div>`;
     document.body.appendChild(sheet);
 
@@ -2372,7 +2408,8 @@ const UI = {
         d2.weekOverride.days[dayIndex] = o.dataset.adjType;
         Store.save();
         sheet.remove();
-        this._toast('今天已改为' + this._typeMeta(o.dataset.adjType).cn + '（仅本周）。');
+        const typeName = I18n.lang === 'zh-CN' ? this._typeMeta(o.dataset.adjType).cn : this._typeMeta(o.dataset.adjType).en;
+        this._toast(I18n.t('adj.changed', [typeName]));
         this.renderToday();
       };
     });
@@ -2389,18 +2426,20 @@ const UI = {
   // 交换两个日期（本周临时）
   _confirmSwap(aIdx, bIdx, sheet) {
     const d = Store.get();
-    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const days = [I18n.t('adj.day0'), I18n.t('adj.day1'), I18n.t('adj.day2'), I18n.t('adj.day3'), I18n.t('adj.day4'), I18n.t('adj.day5'), I18n.t('adj.day6')];
     const weekKey = Store.weekKeyOf();
+    const aType = I18n.lang === 'zh-CN' ? this._typeMeta(Logic.typeFor(aIdx)).cn : this._typeMeta(Logic.typeFor(aIdx)).en;
+    const bType = I18n.lang === 'zh-CN' ? this._typeMeta(Logic.typeFor(bIdx)).cn : this._typeMeta(Logic.typeFor(bIdx)).en;
     const confirmBox = document.createElement('div');
     confirmBox.className = 'sheet-mask';
     confirmBox.innerHTML = `
       <div class="sheet">
-        <div class="sheet-title">交换训练日</div>
-        <div class="sheet-sub">将：<b>${days[aIdx]} ${this._typeMeta(Logic.typeFor(aIdx)).cn}</b><br>与：<b>${days[bIdx]} ${this._typeMeta(Logic.typeFor(bIdx)).cn}</b><br>交换？</div>
-        <div class="sheet-hint">仅本周生效，长期模板不变。</div>
+        <div class="sheet-title">${I18n.t('adj.swapTitle')}</div>
+        <div class="sheet-sub">${I18n.t('adj.swapConfirm', [days[aIdx], aType, days[bIdx], bType])}</div>
+        <div class="sheet-hint">${I18n.t('adj.swapHint')}</div>
         <div class="cc-btn-row" style="margin-top:14px;">
-          <button class="btn btn-sm btn-ghost" data-swap-no>取消</button>
-          <button class="btn btn-sm btn-accent" data-swap-yes>确认交换</button>
+          <button class="btn btn-sm btn-ghost" data-swap-no>${I18n.t('adj.swapNo')}</button>
+          <button class="btn btn-sm btn-accent" data-swap-yes>${I18n.t('adj.swapYes')}</button>
         </div>
       </div>`;
     document.body.appendChild(confirmBox);
@@ -2415,7 +2454,7 @@ const UI = {
       Store.save();
       confirmBox.remove();
       if (sheet) sheet.remove();
-      this._toast('已交换。今天按新安排显示（仅本周）。');
+      this._toast(I18n.t('adj.swapped'));
       this.renderToday();
     };
     confirmBox.querySelector('[data-swap-yes]').onclick = doSwap;
@@ -2477,10 +2516,10 @@ const UI = {
       this.app.innerHTML = `
         <div class="workout-screen">
           <div class="ex-header"><div class="ex-count">REST DAY</div></div>
-          <div class="ex-title" style="margin-top:14px;">今天没有训练安排。</div>
-          <div class="one-liner" style="margin-top:10px;">恢复也是训练的一部分。让身体休息，明天再战。</div>
+          <div class="ex-title" style="margin-top:14px;">${I18n.t('workout.restDay')}</div>
+          <div class="one-liner" style="margin-top:10px;">${I18n.t('workout.restDayHint')}</div>
           <div style="margin-top:34px;text-align:center;">
-            <button class="btn btn-accent" data-back-home>返回首页</button>
+            <button class="btn btn-accent" data-back-home>${I18n.t('workout.backHome')}</button>
           </div>
         </div>`;
       this.app.querySelector('[data-back-home]').onclick = () => this.renderApp();
@@ -2574,11 +2613,11 @@ const UI = {
 
     this.app.innerHTML = `
       <div class="workout-screen">
-        <div class="ex-header"><div class="ex-count">CARDIO IN PROGRESS</div></div>
+        <div class="ex-header"><div class="ex-count">${I18n.t('cardio.inProgress')}</div></div>
         <div class="cardio-timer" data-cd-timer>00:00</div>
-        <div class="one-liner" style="text-align:center;margin-top:6px;">保持节奏。别第一分钟就冲太猛。</div>
+        <div class="one-liner" style="text-align:center;margin-top:6px;">${I18n.t('cardio.desc')}</div>
         <div class="step-nav" style="margin-top:40px;">
-          <button class="btn btn-accent" data-finish-cardio>完成训练</button>
+          <button class="btn btn-accent" data-finish-cardio>${I18n.t('cardio.finish')}</button>
         </div>
       </div>`;
     this.app.querySelector('[data-finish-cardio]').onclick = () => this._finishCardio();
@@ -2604,21 +2643,21 @@ const UI = {
 
     this.app.innerHTML = `
       <div class="workout-screen">
-        <div class="ex-header"><div class="ex-count">${isActiveRecovery ? 'ACTIVE RECOVERY DONE' : 'CARDIO DONE'}</div></div>
-        <div class="ex-title" style="margin-top:10px;">记录今天的${method.cn}</div>
-        <div class="cardio-done-time">${method.en} · ${duration} MIN</div>
+        <div class="ex-header"><div class="ex-count">${isActiveRecovery ? I18n.t('cardio.activeRecoveryDone') : I18n.t('cardio.done')}</div></div>
+        <div class="ex-title" style="margin-top:10px;">${I18n.t('cardio.recordMethod', [method.cn])}</div>
+        <div class="cardio-done-time">${method.en} · ${duration} ${I18n.t('home.streak').includes('连') ? 'MIN' : 'min'}</div>
 
-        ${hasDistance ? `<div class="field" style="margin-top:20px;"><label>距离（km）</label><input type="number" class="cardio-input" data-cd-dist value="" step="0.1" min="0" placeholder="例如 5.0"></div>` : ''}
-        <div class="field"><label>平均心率（可选）</label><input type="number" class="cardio-input" data-cd-hr value="" step="1" min="40" max="220" placeholder="例如 145"></div>
-        <div class="field"><label>今日感受</label>
+        ${hasDistance ? `<div class="field" style="margin-top:20px;"><label>${I18n.t('cardio.distance')}</label><input type="number" class="cardio-input" data-cd-dist value="" step="0.1" min="0" placeholder="${I18n.t('cardio.distancePh')}"></div>` : ''}
+        <div class="field"><label>${I18n.t('cardio.heartRate')}</label><input type="number" class="cardio-input" data-cd-hr value="" step="1" min="40" max="220" placeholder="${I18n.t('cardio.heartRatePh')}"></div>
+        <div class="field"><label>${I18n.t('cardio.feel')}</label>
           <div class="seg-row">
-            ${[['easy','轻松'],['just','正好'],['hard','很累']].map(([k,l]) => `<div class="seg" data-cd-feel="${k}"><span>${l}</span></div>`).join('')}
+            ${[['easy', I18n.t('cardio.feelEasy')],['just', I18n.t('cardio.feelJust')],['hard', I18n.t('cardio.feelHard')]].map(([k,l]) => `<div class="seg" data-cd-feel="${k}"><span>${l}</span></div>`).join('')}
           </div>
         </div>
 
         <div class="step-nav" style="margin-top:26px;">
-          <button class="btn btn-ghost" data-cd-skip>跳过</button>
-          <button class="btn btn-accent" data-cd-save>保存记录 →</button>
+          <button class="btn btn-ghost" data-cd-skip>${I18n.t('cardio.skip')}</button>
+          <button class="btn btn-accent" data-cd-save>${I18n.t('cardio.save')}</button>
         </div>
       </div>`;
 
@@ -2649,7 +2688,7 @@ const UI = {
       if (feel) { d2.reviews = d2.reviews || {}; d2.reviews[key] = feel; }
       this._updateStreak(key);
       Store.save();
-      this._toast(isActiveRecovery ? '主动恢复记录已保存。' : '有氧记录已保存。');
+      this._toast(isActiveRecovery ? I18n.t('cardio.ARsaved') : I18n.t('cardio.saved'));
       this.renderApp();
       this.switchTab('today');
     };
@@ -2664,30 +2703,30 @@ const UI = {
     this.app.innerHTML = `
       <div class="workout-screen">
         <div class="ex-header"><div class="ex-count">PRE-WORKOUT</div></div>
-        <div class="ex-title" style="margin-top:10px;">今天状态怎么样？</div>
-        <div class="one-liner" style="margin-top:8px;">${Persona.softMode() ? '状态不好也没关系。今天降一点强度。' : '告诉系统你现在的状态，系统会调整今天的强度。'}</div>
+        <div class="ex-title" style="margin-top:10px;">${I18n.t('state.title')}</div>
+        <div class="one-liner" style="margin-top:8px;">${Persona.softMode() ? I18n.t('state.softHint') : I18n.t('state.hint')}</div>
 
-        <div class="field" style="margin-top:30px;"><label>状态</label>
+        <div class="field" style="margin-top:30px;"><label>${I18n.t('state.energy')}</label>
           <div class="state-quick">
-            ${[['great','很好'],['good','正常'],['tired','有点累'],['wiped','很疲惫']].map(([k,l])=>`<div class="state-q ${s.energy===k?'selected':''}" data-energy="${k}"><div class="sq-t">${l}</div></div>`).join('')}
+            ${[['great', I18n.t('state.energy.great')], ['good', I18n.t('state.energy.good')], ['tired', I18n.t('state.energy.tired')], ['wiped', I18n.t('state.energy.wiped')]].map(([k,l]) => `<div class="state-q ${s.energy===k?'selected':''}" data-energy="${k}"><div class="sq-t">${l}</div></div>`).join('')}
           </div>
         </div>
-        <div class="field"><label>昨晚睡眠</label>
+        <div class="field"><label>${I18n.t('state.sleep')}</label>
           <div class="state-quick">
-            ${[['great','很好'],['good','一般'],['bad','较差']].map(([k,l])=>`<div class="state-q ${s.sleep===k?'selected':''}" data-sleep="${k}"><div class="sq-t">${l}</div></div>`).join('')}
+            ${[['great', I18n.t('state.sleep.great')], ['good', I18n.t('state.sleep.good')], ['bad', I18n.t('state.sleep.bad')]].map(([k,l]) => `<div class="state-q ${s.sleep===k?'selected':''}" data-sleep="${k}"><div class="sq-t">${l}</div></div>`).join('')}
           </div>
         </div>
-        <div class="field"><label>身体有没有不舒服</label>
+        <div class="field"><label>${I18n.t('state.ache')}</label>
           <div class="state-quick">
-            ${[['none','没有'],['shoulder','肩'],['back','腰'],['knee','膝'],['wrist','手腕'],['other','其他']].map(([k,l])=>`<div class="state-q ${s.ache===k?'selected':''}" data-ache="${k}"><div class="sq-t">${l}</div></div>`).join('')}
+            ${[['none', I18n.t('state.ache.none')], ['shoulder', I18n.t('state.ache.shoulder')], ['back', I18n.t('state.ache.back')], ['knee', I18n.t('state.ache.knee')], ['wrist', I18n.t('state.ache.wrist')], ['other', I18n.t('state.ache.other')]].map(([k,l]) => `<div class="state-q ${s.ache===k?'selected':''}" data-ache="${k}"><div class="sq-t">${l}</div></div>`).join('')}
           </div>
         </div>
 
         ${this._stateHint(s)}
 
         <div class="step-nav" style="margin-top:32px;">
-          <button class="btn btn-ghost" data-cancel-workout>取消</button>
-          <button class="btn btn-accent" data-confirm-state>开练</button>
+          <button class="btn btn-ghost" data-cancel-workout>${I18n.t('state.cancel')}</button>
+          <button class="btn btn-accent" data-confirm-state>${I18n.t('state.start')}</button>
         </div>
       </div>`;
 
@@ -2734,10 +2773,10 @@ const UI = {
       this.app.innerHTML = `
         <div class="workout-screen">
           <div class="ex-header"><div class="ex-count">REST DAY</div></div>
-          <div class="ex-title" style="margin-top:14px;">今天没有训练安排。</div>
-          <div class="one-liner" style="margin-top:10px;">恢复也是训练的一部分。让身体休息，明天再战。</div>
+          <div class="ex-title" style="margin-top:14px;">${I18n.t('workout.restDay')}</div>
+          <div class="one-liner" style="margin-top:10px;">${I18n.t('workout.restDayHint')}</div>
           <div style="margin-top:34px;text-align:center;">
-            <button class="btn btn-accent" data-back-home>返回首页</button>
+            <button class="btn btn-accent" data-back-home>${I18n.t('workout.backHome')}</button>
           </div>
         </div>`;
       this.app.querySelector('[data-back-home]').onclick = () => this.renderApp();
@@ -2781,25 +2820,25 @@ const UI = {
     // 上次记录展示（时间型显示时长，不用 kg）
     const lastDisplay = ex.lastRec
       ? (isTime ? `<b>${ex.lastRec.reps} ${unit}</b>` : `<b>${ex.lastRec.weight} kg × ${ex.lastRec.reps}</b>`)
-      : '<b>首次训练</b>';
+      : `<b>${I18n.t('train.firstTime')}</b>`;
 
     // 当前组列表
     const setItems = Array.from({length: ex.sets}, (_,i)=>{
       const done = ex.done[i];
       const isCur = !done && !skipped && i === ex.done.length;
       if (skipped) {
-        return `<div class="set-item" style="opacity:0.35;"><div><div class="s-name">SET ${String(i+1).padStart(2,'0')}</div><div class="s-val">SKIPPED</div></div><div class="s-status">—</div></div>`;
+        return `<div class="set-item" style="opacity:0.35;"><div><div class="s-name">${I18n.t('train.SET')} ${String(i+1).padStart(2,'0')}</div><div class="s-val">SKIPPED</div></div><div class="s-status">—</div></div>`;
       }
       if (done) {
         const hit = done.reps >= targetReps;
         const v = done.weight ? `${done.weight} <span class="sv-lite">KG</span>` : `${done.reps} <span class="sv-lite">${unit}</span>`;
-        return `<div class="set-item done"><div><div class="s-name">SET ${String(i+1).padStart(2,'0')}</div><div class="s-val">${v}</div></div><div class="s-status">${done.reps} ${unit} · ${hit?'✓':''}</div></div>`;
+        return `<div class="set-item done"><div><div class="s-name">${I18n.t('train.SET')} ${String(i+1).padStart(2,'0')}</div><div class="s-val">${v}</div></div><div class="s-status">${done.reps} ${unit} · ${hit?'✓':''}</div></div>`;
       }
       const vCur = isTime ? `${ex.reps[1]} <span class="sv-lite">${unit}</span>` : `${ex.weight} <span class="sv-lite">KG</span>`;
       if (isCur) {
-        return `<div class="set-item current"><div><div class="s-name">SET ${String(i+1).padStart(2,'0')}</div><div class="s-val">${vCur}</div></div><div class="s-status">输入${isTime ? '时长' : '次数'}</div></div>`;
+        return `<div class="set-item current"><div><div class="s-name">${I18n.t('train.SET')} ${String(i+1).padStart(2,'0')}</div><div class="s-val">${vCur}</div></div><div class="s-status">${isTime ? I18n.t('train.inputTime') : I18n.t('train.inputReps')}</div></div>`;
       }
-      return `<div class="set-item" style="opacity:0.45;"><div><div class="s-name">SET ${String(i+1).padStart(2,'0')}</div><div class="s-val">${vCur}</div></div><div class="s-status">—</div></div>`;
+      return `<div class="set-item" style="opacity:0.45;"><div><div class="s-name">${I18n.t('train.SET')} ${String(i+1).padStart(2,'0')}</div><div class="s-val">${vCur}</div></div><div class="s-status">—</div></div>`;
     }).join('');
 
     // 本轮当前组目标（对第 curSet 组）
@@ -2808,20 +2847,20 @@ const UI = {
     this.app.innerHTML = `
       <div class="workout-screen">
         <div class="ex-header">
-          <button class="ex-back" data-leave-today>← TODAY<span class="ex-back-cn">暂离保存</span></button>
+          <button class="ex-back" data-leave-today>← TODAY<span class="ex-back-cn">${I18n.t('train.leaveNote')}</span></button>
           <div class="ex-count">${String(idx+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}</div>
         </div>
         <div class="ex-title">${ex.en}</div>
-        <div class="ex-cn">${ex.cn}${ex.optional ? ' <span class="ex-opt-tag">OPTIONAL</span>' : ''}</div>
+        <div class="ex-cn">${ex.cn}${ex.optional ? ' <span class="ex-opt-tag">' + I18n.t('train.OPTIONAL') + '</span>' : ''}</div>
         <div class="ex-muscle">${ex.muscle} / ${ex.assist.join(' / ')}</div>
 
-        <div class="last-time">上次：${lastDisplay}</div>
+        <div class="last-time">${I18n.t('train.lastTime').replace('：', '')} ${lastDisplay}</div>
 
         <div class="target-row">
           <div class="target-weight" data-weight-btn="${ex.weight}" data-ex-idx="${idx}">${isTime ? ex.reps[1] : ex.weight} <span class="unit">${unit}</span></div>
           <div class="target-meta">
             <div class="tm">${ex.sets} × ${ex.reps[0]}-${ex.reps[1]} ${unit}</div>
-            <div class="tm-sm">RIR ${ex.rir} · 目标 ${targetReps}${isTime ? ' ' + unit : '+'}</div>
+            <div class="tm-sm">${I18n.t('train.rir')} ${ex.rir} · ${I18n.t('train.target')} ${targetReps}${isTime ? ' ' + unit : '+'}</div>
           </div>
         </div>
 
@@ -2829,7 +2868,7 @@ const UI = {
 
         ${!completedAll ? `
           <div class="reps-input">
-            <div class="ri-label">${isTime ? '时长（' + unit + '）' : '次数'}</div>
+            <div class="ri-label">${isTime ? I18n.t('cardio.distance') + '（' + unit + '）' : I18n.t('train.inputReps')}</div>
             <div class="ri-controls">
               <div class="ri-step" data-reps-dec>−</div>
               <div class="ri-val" id="reps-val">${targetReps}</div>
@@ -2837,14 +2876,14 @@ const UI = {
             </div>
           </div>
           <div class="riir-row">
-            ${[0,1,2,3].map(r=>`<div class="riir" data-rir="${r}"><div class="rr-n">${r}</div><div class="rr-l">${r===0?'力竭':r+' 次余力'}</div></div>`).join('')}
+            ${[0,1,2,3].map(r=>`<div class="riir" data-rir="${r}"><div class="rr-n">${r}</div><div class="rr-l">${r===0?I18n.t('train.rir0'):r + I18n.t('train.rirN')}</div></div>`).join('')}
           </div>
-          <button class="btn" data-complete-set style="margin-top:20px;">COMPLETE SET</button>
-          ${next ? `<button class="btn btn-ghost" data-skip-ex style="margin-top:10px;">跳过动作</button>` : ''}
+          <button class="btn" data-complete-set style="margin-top:20px;">${I18n.t('workout.completeSet')}</button>
+          ${next ? `<button class="btn btn-ghost" data-skip-ex style="margin-top:10px;">${I18n.t('train.skipEx')}</button>` : ''}
         ` : `
           <div style="text-align:center;margin-top:26px;">
-            <div class="eyebrow">${skipped ? '该动作已跳过' : '该动作全部完成'}</div>
-            ${next ? `<button class="btn btn-dark" data-next-ex style="margin-top:16px;">下一个动作 →</button>` : `<button class="btn btn-accent" data-finish-workout style="margin-top:16px;">完成训练 →</button>`}
+            <div class="eyebrow">${skipped ? I18n.t('train.exSkipped') : I18n.t('train.exDone')}</div>
+            ${next ? `<button class="btn btn-dark" data-next-ex style="margin-top:16px;">${I18n.t('train.nextEx')}</button>` : `<button class="btn btn-accent" data-finish-workout style="margin-top:16px;">${I18n.t('train.finishWorkout')}</button>`}
           </div>
         `}
       </div>`;
@@ -2875,7 +2914,7 @@ const UI = {
         sheet.className = 'ws-mask';
         sheet.innerHTML = `
           <div class="ws-sheet">
-            <div class="ws-title">设置重量</div>
+            <div class="ws-title">${I18n.t('train.setWeight')}</div>
             <div class="ws-input-row">
               <input class="ws-input" id="ws-num" type="number" value="${currentW}" step="0.5" min="0" placeholder="0" />
               <span class="ws-unit">KG</span>
@@ -2886,8 +2925,8 @@ const UI = {
               <button class="ws-btn" data-ws="1.25">+1.25</button>
               <button class="ws-btn" data-ws="2.5">+2.5</button>
             </div>
-            <button class="btn btn-accent" data-ws-confirm style="margin-top:16px;">确认</button>
-            <button class="btn btn-ghost" data-ws-cancel style="width:100%;margin-top:8px;">取消</button>
+            <button class="btn btn-accent" data-ws-confirm style="margin-top:16px;">${I18n.t('weight.confirm')}</button>
+            <button class="btn btn-ghost" data-ws-cancel style="width:100%;margin-top:8px;">${I18n.t('weight.cancel')}</button>
           </div>`;
         document.body.appendChild(sheet);
         const input = sheet.querySelector('#ws-num');
@@ -2968,15 +3007,15 @@ const UI = {
     this.restSec = rest;
     this.restEndTs = Date.now() + left * 1000;
     const nextEx = idx + 1 < w.exercises.length ? w.exercises[idx+1] : null;
-    let nextLabel = '即将完成训练';
+    let nextLabel = I18n.t('train.upcomingFinish');
     if (nextEx) {
       if (nextEx.type === 'time') {
         const u = String(nextEx.timeUnit || 'sec');
-        nextLabel = `下一组：<b>${nextEx.cn} ${nextEx.reps && nextEx.reps[1] ? nextEx.reps[1] : ''} ${u}</b>`;
+        nextLabel = `${I18n.t('train.nextGroup')}<b>${nextEx.cn} ${nextEx.reps && nextEx.reps[1] ? nextEx.reps[1] : ''} ${u}</b>`;
       } else if (nextEx.type === 'reps' || !nextEx.weight) {
-        nextLabel = `下一组：<b>${nextEx.cn}（徒手）</b>`;
+        nextLabel = `${I18n.t('train.nextGroup')}<b>${nextEx.cn}（徒手）</b>`;
       } else {
-        nextLabel = `下一组：<b>${nextEx.cn} ${nextEx.weight}kg</b>`;
+        nextLabel = `${I18n.t('train.nextGroup')}<b>${nextEx.cn} ${nextEx.weight}kg</b>`;
       }
     }
 
@@ -2987,13 +3026,13 @@ const UI = {
 
     this.app.innerHTML = `
       <div class="rest-screen">
-        <button class="ex-back rest-back" data-leave-today>← TODAY<span class="ex-back-cn">暂离保存</span></button>
-        <div class="rest-label">${restComplete ? 'REST COMPLETE' : 'REST'}</div>
+        <button class="ex-back rest-back" data-leave-today>← TODAY<span class="ex-back-cn">${I18n.t('train.leaveNote')}</span></button>
+        <div class="rest-label">${restComplete ? I18n.t('workout.restComplete') : I18n.t('workout.rest')}</div>
         <div class="rest-time" id="rest-time">${this._fmt(left)}</div>
         <div class="rest-next">${nextLabel}</div>
         ${!restComplete && rivalLine ? `<div class="rest-rival">${rivalLine}</div>` : ''}
         <div class="rest-actions">
-          <button class="btn btn-ghost" data-rest-skip style="flex:1;">${restComplete ? '继续下一组' : 'SKIP REST'}</button>
+          <button class="btn btn-ghost" data-rest-skip style="flex:1;">${restComplete ? I18n.t('train.continueNext') : I18n.t('train.skipRest')}</button>
         </div>
       </div>`;
     this.app.querySelector('[data-rest-skip]').onclick = () => {
@@ -3138,7 +3177,7 @@ const UI = {
   _showDoneFlash(cb) {
     const f = document.createElement('div');
     f.className = 'done-flash in';
-    f.innerHTML = `<div class="df-t">DONE.</div>`;
+    f.innerHTML = `<div class="df-t">${I18n.t('workout.workoutDone')}</div>`;
     this.app.appendChild(f);
     setTimeout(() => { f.remove(); cb(); }, 1600);
   },
@@ -3166,7 +3205,7 @@ const UI = {
     this.app.innerHTML = `
       <div class="workout-screen">
         <div class="summary-hero">
-          <div class="sh-kicker">TODAY DONE</div>
+          <div class="sh-kicker">${I18n.t('review.TODAY_DONE')}</div>
           <div class="sh-time">${rec.duration} <span class="u">MIN</span></div>
           <div class="sh-sub">${rec.setsDone} / ${rec.setsTotal} SETS · ${rec.volume} KG</div>
         </div>
@@ -3186,17 +3225,17 @@ const UI = {
         </div>
 
         ${nextEx.length ? `<div class="next-session">
-          <div class="ns-h">下次建议</div>
+          <div class="ns-h">${I18n.t('review.nextSuggestion')}</div>
           ${nextEx.slice(0,4).map((n, i)=>{
             const isTime = n.ex && n.ex.type === 'time';
             const unit = isTime ? ' ' + (n.ex.timeUnit || 'sec') : 'kg';
             const sugText = n.text.split('。')[0];
             return `<div class="next-row">
               <span class="n-ex">${n.cn}</span>
-              <span class="n-sug">建议 <b>${n.newWeight}${unit}</b> · ${sugText}</span>
+              <span class="n-sug">${I18n.lang === 'zh-CN' ? '建议 ' : 'Rec. '}<b>${n.newWeight}${unit}</b> · ${sugText}</span>
               <div class="n-btns">
-                <button class="n-btn adopt" data-adopt="${i}">采用</button>
-                <button class="n-btn keep" data-keep="${i}">保持</button>
+                <button class="n-btn adopt" data-adopt="${i}">${I18n.t('review.adopt')}</button>
+                <button class="n-btn keep" data-keep="${i}">${I18n.t('review.keep')}</button>
               </div>
             </div>`;
           }).join('')}
@@ -3207,7 +3246,7 @@ const UI = {
           <div class="hm-txt">${Persona.get('done')}</div>
         </div>
 
-        <button class="btn btn-accent" data-back-home style="margin-top:24px;">返回首页</button>
+        <button class="btn btn-accent" data-back-home style="margin-top:24px;">${I18n.t('review.backHome')}</button>
       </div>`;
 
     this.app.querySelector('[data-back-home]').onclick = () => {
@@ -3223,14 +3262,14 @@ const UI = {
         if (n && n.ex) {
           Store.setExerciseDefault(n.ex.cn, n.newWeight);
         }
-        b.textContent = '已采用';
+        b.textContent = I18n.t('review.adopted');
         b.disabled = true;
         b.parentElement.querySelector('[data-keep]').style.display = 'none';
       };
     });
     this.app.querySelectorAll('[data-keep]').forEach(b => {
       b.onclick = () => {
-        b.textContent = '已保持';
+        b.textContent = I18n.t('review.kept');
         b.disabled = true;
         b.parentElement.querySelector('[data-adopt]').style.display = 'none';
       };
