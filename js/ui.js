@@ -2789,6 +2789,7 @@ const UI = {
     const w = this.workout;
     this.view = 'workout'; // 显式回到动作视图（避免 showRest 后残留 rest 态，保证暂离快照判断正确）
     this.curIdx = idx; // 当前动作序号（← TODAY 暂离快照用）
+    this._ensureQueue(); // Workout Queue：确保今日队列与状态就绪
     const ex = w.exercises[idx];
     if (!ex) {
       // 兜底：动作缺失时直接完成或返回，避免崩溃白屏
@@ -2804,9 +2805,13 @@ const UI = {
       }
     }
     const total = w.exercises.length;
-    const next = idx + 1 < total ? w.exercises[idx+1] : null;
-    const isLast = idx === total - 1;
+    // Workout Queue：下一动作依据今日队列（非原始模板 index）
+    const next = this._nextQueueIndex(idx);
+    const isLast = next === null;
     const isLastSet = ex.curSet >= ex.sets;
+
+    // Workout Queue 进度：已完成动作数（含真正全部组完成或跳过，不含 later）
+    const doneCount = w.exercises.filter(x => x.qStatus === 'done' || x.qStatus === 'skipped' || (x.qDone && x.done && x.done.length >= x.sets)).length;
 
     // 单位：时间型动作（平板支撑/侧平板/慢走）用 SEC/MIN，不用 KG
     const isTime = ex.type === 'time';
@@ -2816,6 +2821,12 @@ const UI = {
     const targetReps = ex.reps[1];
     const skipped = !!ex.skipped;
     const completedAll = ex.done.length >= ex.sets || skipped;
+    // Workout Queue：动作全部完成 → 同步状态为 done；部分完成 → current
+    if (!skipped && ex.done && ex.done.length >= ex.sets && ex.qStatus !== 'skipped') {
+      ex.qStatus = 'done'; ex.qDone = true;
+    } else if (ex.done && ex.done.length > 0 && ex.done.length < ex.sets && !skipped && ex.qStatus !== 'later') {
+      ex.qStatus = 'current';
+    }
 
     // 上次记录展示（时间型显示时长，不用 kg）
     const lastDisplay = ex.lastRec
@@ -2848,7 +2859,8 @@ const UI = {
       <div class="workout-screen">
         <div class="ex-header">
           <button class="ex-back" data-leave-today>← TODAY<span class="ex-back-cn">${I18n.t('train.leaveNote')}</span></button>
-          <div class="ex-count">${String(idx+1).padStart(2,'0')} / ${String(total).padStart(2,'0')}</div>
+          <button class="ex-queue-btn" data-open-queue><span class="eq-dot"></span>${I18n.t('queue.title')}</button>
+          <div class="ex-count">${I18n.lang === 'zh-CN' ? '' : ''}${I18n.t('queue.inProgressCount').replace('%d', doneCount).replace('%d', total)}</div>
         </div>
         <div class="ex-title">${ex.en}</div>
         <div class="ex-cn">${ex.cn}${ex.optional ? ' <span class="ex-opt-tag">' + I18n.t('train.OPTIONAL') + '</span>' : ''}</div>
@@ -2879,7 +2891,7 @@ const UI = {
             ${[0,1,2,3].map(r=>`<div class="riir" data-rir="${r}"><div class="rr-n">${r}</div><div class="rr-l">${r===0?I18n.t('train.rir0'):r + I18n.t('train.rirN')}</div></div>`).join('')}
           </div>
           <button class="btn" data-complete-set style="margin-top:20px;">${I18n.t('workout.completeSet')}</button>
-          ${next ? `<button class="btn btn-ghost" data-skip-ex style="margin-top:10px;">${I18n.t('train.skipEx')}</button>` : ''}
+          <button class="btn btn-ghost ex-menu-btn" data-ex-menu style="margin-top:10px;">··· ${I18n.t('queue.exMenu')}</button>
         ` : `
           <div style="text-align:center;margin-top:26px;">
             <div class="eyebrow">${skipped ? I18n.t('train.exSkipped') : I18n.t('train.exDone')}</div>
@@ -2957,26 +2969,680 @@ const UI = {
       // 下一组或休息
       if (ex.done.length >= ex.sets) {
         // 该动作完成，进入休息或下一动作
-        if (!next) {
-          this.showRest(idx, true);
-        } else {
-          this.showRest(idx, false);
-        }
+        this.showRest(idx, next === null);
       } else {
         this.showRest(idx, false);
       }
     };
-    const skip = this.app.querySelector('[data-skip-ex]');
-    if (skip) skip.onclick = () => {
-      ex.skipped = true; // 标记跳过，暂离后恢复不再要求重做
-      if (next) this.renderExercise(idx+1); else this.finishWorkout();
-    };
+    // Workout Queue：顶部「今日顺序」入口
+    this.app.querySelectorAll('[data-open-queue]').forEach(b => b.onclick = () => this.openQueueSheet());
+    // Workout Queue：当前动作 `···` 菜单
+    this.app.querySelectorAll('[data-ex-menu]').forEach(b => b.onclick = () => this.openExMenu(idx));
     // ← TODAY 暂离返回：保存当前进度回首页（训练不结束）
     this.app.querySelectorAll('[data-leave-today]').forEach(b => b.onclick = () => this._leaveToToday());
     const nex = this.app.querySelector('[data-next-ex]');
-    if (nex) nex.onclick = () => this.renderExercise(idx+1);
+    if (nex) nex.onclick = () => this.renderExercise(this._nextQueueIndex(idx));
     const fin = this.app.querySelector('[data-finish-workout]');
     if (fin) fin.onclick = () => this.finishWorkout();
+  },
+
+  /* ============================================================
+     WORKOUT QUEUE · 今日训练队列
+     今日执行顺序与长期计划分离；状态机 pending/current/done/later/skipped
+     ============================================================ */
+
+  // 初始化队列：保证 w.queue 存在，并按需派生 qStatus
+  _ensureQueue() {
+    const w = this.workout;
+    if (!w) return;
+    if (!Array.isArray(w.queue) || !w.queue.length) {
+      w.queue = w.exercises.map((_, i) => i);
+    }
+    w.exercises.forEach(ex => {
+      if (!ex.qStatus) {
+        if (ex.skipped) ex.qStatus = 'skipped';
+        else if (ex.qDone || (ex.done && ex.done.length >= ex.sets)) ex.qStatus = 'done';
+        else if (ex.done && ex.done.length > 0) ex.qStatus = 'current';
+        else ex.qStatus = 'pending';
+      }
+    });
+  },
+
+  // 根据今日队列找下一个未完成动作（跳过 done/later/skipped），找不到返回 null
+  _nextQueueIndex(fromIdx) {
+    const w = this.workout;
+    if (!w) return null;
+    this._ensureQueue();
+    const q = w.queue.slice();
+    // 优先从当前动作之后找
+    const after = q.slice((q.indexOf(fromIdx) + 1));
+    const all = q;
+    let found = null;
+    for (const i of after) {
+      const ex = w.exercises[i];
+      if (!ex) continue;
+      const st = ex.qStatus || 'pending';
+      if (st === 'pending' || st === 'current') { found = i; break; }
+    }
+    if (found === null) {
+      for (const i of all) {
+        const ex = w.exercises[i];
+        if (!ex) continue;
+        const st = ex.qStatus || 'pending';
+        if (st === 'pending' || st === 'current') { found = i; break; }
+      }
+    }
+    return found;
+  },
+
+  // 队列状态机核心：完成动作后按今日队列前进；返回是否还有待做动作
+  _advanceToNext(fromIdx) {
+    const w = this.workout;
+    this._ensureQueue();
+    // 标记当前动作为已完成（如果全部组完成）
+    const ex = w.exercises[fromIdx];
+    if (ex && ex.qStatus !== 'later' && ex.qStatus !== 'skipped' && ex.done && ex.done.length >= ex.sets) {
+      ex.qStatus = 'done';
+      ex.qDone = true;
+    }
+    const nxt = this._nextQueueIndex(fromIdx);
+    if (nxt === null) {
+      this.finishWorkout();
+      return false;
+    }
+    this.renderExercise(nxt);
+    return true;
+  },
+
+  // 休息后前进：按今日队列（替代旧的 idx+1）
+  _afterRest(idx, finishedEx) {
+    const w = this.workout;
+    // 如果刚完成的动作还有未完成组 -> 回到该动作继续
+    const ex = w.exercises[idx];
+    if (ex && !ex.skipped && ex.qStatus !== 'later' && ex.done.length < ex.sets) {
+      this.renderExercise(idx);
+    } else {
+      this._advanceToNext(idx);
+    }
+  },
+
+  // 队列页：今日训练队列 Bottom Sheet
+  openQueueSheet() {
+    const w = this.workout;
+    if (!w) return;
+    clearInterval(this.restTimer); // 切走时结束当前休息计时（规则二十）
+    this.restTimer = null;
+    this._ensureQueue();
+    this.view = 'queue';
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask qs-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet qs-sheet">
+        <div class="qs-head">
+          <button class="ex-back qs-back" data-qs-close>${I18n.lang === 'zh-CN' ? '← 训练' : '← BACK'}<span class="ex-back-cn">${I18n.t('queue.backToWorkout')}</span></button>
+          <div class="qs-title">${I18n.t('queue.title')}<span class="qs-en">${I18n.t('queue.en')}</span></div>
+          <div class="qs-note">${I18n.t('queue.note')}</div>
+        </div>
+        <div class="qs-body" id="qs-body">${this._queueBodyHtml()}</div>
+        <div class="qs-foot">
+          <div class="qs-progress">${I18n.t('queue.inProgressCount').replace('%d', this._queueDoneCount()).replace('%d', w.exercises.length)}</div>
+          <div class="qs-drag-hint">${I18n.t('queue.dragHint')}</div>
+        </div>
+      </div>`;
+    document.body.appendChild(sheet);
+    this._bindQueueSheet(sheet);
+  },
+
+  _queueDoneCount() {
+    const w = this.workout;
+    if (!w) return 0;
+    return w.exercises.filter(x => x.qStatus === 'done' || x.qStatus === 'skipped' || (x.qDone && x.done && x.done.length >= x.sets)).length;
+  },
+
+  _queueBodyHtml() {
+    const w = this.workout;
+    if (!w) return '';
+    const total = w.exercises.length;
+    const order = w.queue;
+    // 分组：已完成(含跳过) 固定顶部；待训练/进行中/稍后再做 可拖拽
+    const doneIds = [];
+    const activeIds = [];
+    const laterIds = [];
+    order.forEach(i => {
+      const ex = w.exercises[i];
+      if (!ex) return;
+      const st = ex.qStatus || 'pending';
+      if (st === 'done' || st === 'skipped') doneIds.push(i);
+      else if (st === 'later') laterIds.push(i);
+      else activeIds.push(i);
+    });
+    const statusLabel = (st) => {
+      if (st === 'done') return `<span class="qs-st st-done">${I18n.t('queue.done')}</span>`;
+      if (st === 'skipped') return `<span class="qs-st st-skipped">${I18n.t('queue.skipped')}</span>`;
+      if (st === 'later') return `<span class="qs-st st-later">${I18n.t('queue.later')}</span>`;
+      if (st === 'current') return `<span class="qs-st st-current">${I18n.t('queue.current')}</span>`;
+      return `<span class="qs-st st-pending">${I18n.t('queue.pending')}</span>`;
+    };
+    const itemHtml = (i, draggable) => {
+      const ex = w.exercises[i];
+      if (!ex) return '';
+      const st = ex.qStatus || 'pending';
+      const setsInfo = (ex.done && ex.done.length) ? ` · ${ex.done.length}/${ex.sets} SET` : '';
+      const laterTag = st === 'later' ? `<span class="qs-later-tag">${I18n.t('queue.later')}</span>` : '';
+      return `
+        <div class="qs-item ${draggable ? 'drag' : ''} ${st === 'current' ? 'cur' : ''}" data-qidx="${i}">
+          <div class="qs-grip">${draggable ? '☰' : '&nbsp;'}</div>
+          <div class="qs-info" data-qs-go="${i}">
+            <div class="qs-name">${ex.cn}${ex.optional ? ' <span class="ex-opt-tag">OPT</span>' : ''}${setsInfo}</div>
+            <div class="qs-en-line">${ex.en}</div>
+          </div>
+          <div class="qs-right">
+            ${statusLabel(st)}
+            ${laterTag}
+            ${st === 'later' ? `<button class="qs-resume" data-qs-resume="${i}">${I18n.t('queue.laterBack')}</button>` : ''}
+          </div>
+        </div>`;
+    };
+    let html = '';
+    if (doneIds.length) {
+      html += `<div class="qs-group-h">${I18n.t('queue.done')} ${doneIds.length}/${total}</div>`;
+      html += doneIds.map(i => itemHtml(i, false)).join('');
+    }
+    if (activeIds.length) {
+      if (activeIds.length) html += `<div class="qs-group-h">${I18n.t('queue.pending')}</div>`;
+      html += activeIds.map(i => itemHtml(i, true)).join('');
+    }
+    if (laterIds.length) {
+      html += `<div class="qs-group-h">${I18n.t('queue.later')}</div>`;
+      html += laterIds.map(i => itemHtml(i, true)).join('');
+    }
+    return html;
+  },
+
+  _bindQueueSheet(sheet) {
+    const w = this.workout;
+    sheet.querySelector('[data-qs-close]').onclick = () => this._closeQueueSheet(sheet);
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) this._closeQueueSheet(sheet); });
+
+    // 点击动作 → 直接切换（保存当前进度，进入该动作）
+    sheet.querySelectorAll('[data-qs-go]').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const i = Number(el.dataset.qsGo);
+        const ex = w.exercises[i];
+        if (!ex) return;
+        const st = ex.qStatus || 'pending';
+        if (st === 'done' || st === 'skipped') return; // 已完成不可进入
+        this._closeQueueSheet(sheet);
+        this._jumpToExercise(i);
+      };
+    });
+    // 「继续它」→ 切换回稍后动作
+    sheet.querySelectorAll('[data-qs-resume]').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const i = Number(el.dataset.qsResume);
+        this._closeQueueSheet(sheet);
+        this._jumpToExercise(i);
+      };
+    });
+
+    // 长按拖拽排序（触摸 + 鼠标）
+    this._bindQueueDrag(sheet);
+  },
+
+  // 切换/跳转动作：保存当前进度、结束休息、进入目标动作
+  _jumpToExercise(idx) {
+    const w = this.workout;
+    if (!w) return;
+    clearInterval(this.restTimer);
+    this.restTimer = null;
+    this._ensureQueue();
+    // 当前动作如果没完成全部组，标记 current；原 current 不强制改为 later
+    const cur = w.exercises[this.curIdx];
+    if (cur && cur.qStatus === 'current' && cur.done && cur.done.length > 0 && cur.done.length < cur.sets) {
+      cur.qStatus = 'current'; // 保持进行中
+    }
+    const target = w.exercises[idx];
+    if (target) target.qStatus = 'current';
+    this._persistWorkoutState();
+    this.renderExercise(idx);
+  },
+
+  // 拖拽排序：长按 300ms 激活，触摸顺畅
+  _bindQueueDrag(sheet) {
+    const w = this.workout;
+    const body = sheet.querySelector('#qs-body');
+    if (!body) return;
+    let dragEl = null;
+    let ghost = null;
+    let startY = 0;
+    let itemH = 0;
+    let order = [];
+    let fromIdx = null;
+    let longPressTimer = null;
+    let moved = false;
+    const refreshOrder = () => {
+      order = body.querySelectorAll('.qs-item.drag');
+    };
+
+    const commitOrder = () => {
+      if (fromIdx === null) return;
+      // 依据 DOM 顺序重建 w.queue：已完成区固定顶部，然后按当前 DOM 顺序
+      const domIdx = [];
+      body.querySelectorAll('.qs-item').forEach(el => {
+        const i = Number(el.dataset.qidx);
+        if (w.exercises[i] && w.exercises[i].qStatus !== 'done' && w.exercises[i].qStatus !== 'skipped') domIdx.push(i);
+      });
+      // 已完成保持原相对顺序（在队列中保持位置）
+      const donePart = w.queue.filter(i => {
+        const ex = w.exercises[i];
+        return ex && (ex.qStatus === 'done' || ex.qStatus === 'skipped');
+      });
+      w.queue = donePart.concat(domIdx);
+      this._persistWorkoutState();
+    };
+
+    const onStart = (e, idx) => {
+      const el = e.currentTarget;
+      if (!el.classList.contains('drag')) return;
+      longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        moved = false;
+        fromIdx = idx;
+        dragEl = el;
+        itemH = el.offsetHeight;
+        startY = (e.touches ? e.touches[0].clientY : e.clientY);
+        el.classList.add('dragging');
+        el.style.opacity = '0.4';
+        // 触觉反馈
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) {} }
+      }, 300);
+    };
+    const onMove = (e, idx) => {
+      if (!longPressTimer) return;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY);
+      if (Math.abs(y - startY) > 10) moved = true;
+    };
+    const onEnd = (e, idx) => {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+      if (dragEl) {
+        dragEl.classList.remove('dragging');
+        dragEl.style.opacity = '';
+        commitOrder();
+        dragEl = null;
+        fromIdx = null;
+      }
+    };
+
+    // 简单触摸交换：长按后上下拖动交换相邻
+    const listEls = () => Array.from(body.querySelectorAll('.qs-item.drag'));
+    body.addEventListener('touchmove', (e) => {
+      if (!dragEl) return;
+      e.preventDefault();
+      const y = (e.touches ? e.touches[0].clientY : e.clientY);
+      const items = listEls();
+      const curIdx = items.indexOf(dragEl);
+      if (curIdx < 0) return;
+      const next = (y > startY) ? items[curIdx + 1] : items[curIdx - 1];
+      if (next && next !== dragEl) {
+        // 交换 DOM
+        const rectA = dragEl.getBoundingClientRect();
+        const rectB = next.getBoundingClientRect();
+        const gap = (next.offsetHeight) / 2;
+        if (Math.abs(rectA.top - rectB.top) > 4) {
+          if (y > startY) { body.insertBefore(next, dragEl); }
+          else { body.insertBefore(dragEl, next); }
+          startY = y;
+        }
+      }
+    }, { passive: false });
+    body.addEventListener('touchstart', (e) => {
+      const el = e.target.closest('.qs-item');
+      if (!el) return;
+      const idx = Number(el.dataset.qidx);
+      onStart(e, idx);
+    }, { passive: true });
+    body.addEventListener('touchend', onEnd, { passive: true });
+
+    // 鼠标拖拽（桌面预览）
+    body.addEventListener('mousedown', (e) => {
+      const el = e.target.closest('.qs-item');
+      if (!el) return;
+      const idx = Number(el.dataset.qidx);
+      onStart(e, idx);
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragEl) return;
+      const y = e.clientY;
+      const items = listEls();
+      const curIdx = items.indexOf(dragEl);
+      if (curIdx < 0) return;
+      const next = (y > startY) ? items[curIdx + 1] : items[curIdx - 1];
+      if (next && next !== dragEl) {
+        const rectA = dragEl.getBoundingClientRect();
+        if (Math.abs(rectA.top - next.getBoundingClientRect().top) > 4) {
+          if (y > startY) body.insertBefore(next, dragEl);
+          else body.insertBefore(dragEl, next);
+          startY = y;
+        }
+      }
+    });
+    document.addEventListener('mouseup', onEnd);
+  },
+
+  _closeQueueSheet(sheet) {
+    if (sheet && sheet.parentNode) sheet.remove();
+    // 若当前在训练动作视图，回到它
+    if (this.view === 'queue') {
+      this.view = 'workout';
+      if (typeof this.curIdx === 'number') this.renderExercise(this.curIdx);
+    }
+  },
+
+  /* ---------- 当前动作 `···` 菜单 ---------- */
+  openExMenu(idx) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    if (!ex) return;
+    const st = ex.qStatus || 'pending';
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask em-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet em-sheet">
+        <div class="ws-title">${I18n.t('queue.exMenu')} · ${ex.cn}</div>
+        <div class="em-list">
+          <button class="em-row" data-em-occupied>${I18n.t('queue.occupied')}</button>
+          ${st !== 'later' ? `<button class="em-row" data-em-later>${I18n.t('queue.postpone')}</button>` : ''}
+          <button class="em-row" data-em-reorder>${I18n.t('queue.reorder')}</button>
+          <button class="em-row" data-em-replace>${I18n.t('queue.replace')}</button>
+          <button class="em-row danger" data-em-skip>${I18n.t('queue.skipToday')}</button>
+        </div>
+        <button class="btn btn-ghost" data-em-cancel style="width:100%;margin-top:8px;">${I18n.t('queue.cancel')}</button>
+      </div>`;
+    document.body.appendChild(sheet);
+    const close = () => sheet.remove();
+    sheet.querySelector('[data-em-cancel]').onclick = close;
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+
+    sheet.querySelector('[data-em-occupied]').onclick = () => { close(); this._equipmentBusy(idx); };
+    sheet.querySelectorAll('[data-em-later]').forEach(b => b.onclick = () => { close(); this._postponeLater(idx); });
+    sheet.querySelector('[data-em-reorder]').onclick = () => { close(); this.openQueueSheet(); };
+    sheet.querySelector('[data-em-replace]').onclick = () => { close(); this._replaceExercise(idx); };
+    sheet.querySelector('[data-em-skip]').onclick = () => { close(); this._confirmSkip(idx); };
+  },
+
+  /* 器械占用：移到最后 / 选择位置 / 取消（≠ 跳过） */
+  _equipmentBusy(idx) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    if (!ex) return;
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask occ-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet occ-sheet">
+        <div class="occ-title">${I18n.t('queue.occupied')}?</div>
+        <div class="occ-ex">${ex.cn}</div>
+        <div class="occ-hint">${I18n.t('queue.occupiedHint')}</div>
+        <div class="occ-rival">${I18n.t('queue.rivalLine')}</div>
+        <div class="occ-actions">
+          <button class="btn" data-occ-last style="margin-top:14px;">${I18n.t('queue.moveLast')}</button>
+          <button class="btn btn-ghost" data-occ-pos style="margin-top:8px;">${I18n.t('queue.pickPos')}</button>
+          <button class="btn btn-ghost" data-occ-cancel style="margin-top:8px;">${I18n.t('queue.cancel')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(sheet);
+    const close = () => sheet.remove();
+    sheet.querySelector('[data-occ-cancel]').onclick = close;
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+
+    // 移到最后：标记稍后再做，移到队列末尾，自动进入下一动作
+    sheet.querySelector('[data-occ-last]').onclick = () => {
+      close();
+      this._markLater(idx, true);
+    };
+    // 选择位置：弹出位置列表
+    sheet.querySelector('[data-occ-pos]').onclick = () => {
+      close();
+      this._choosePosition(idx);
+    };
+  },
+
+  // 标记为稍后再做（保留进度）。moveToEnd=true 时移到队列末尾
+  _markLater(idx, moveToEnd) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    if (!ex) return;
+    clearInterval(this.restTimer);
+    this.restTimer = null;
+    this._ensureQueue();
+    ex.qStatus = 'later';
+    if (moveToEnd) {
+      const q = w.queue.filter(i => i !== idx);
+      q.push(idx);
+      w.queue = q;
+    }
+    this._persistWorkoutState();
+    // 自动进入下一个未完成动作
+    const nxt = this._nextQueueIndex(idx);
+    if (nxt === null || nxt === idx) {
+      this._showQueueToast(I18n.t('queue.laterSaved'));
+      if (nxt === null) this.finishWorkout(); else this.renderExercise(nxt);
+    } else {
+      this.renderExercise(nxt);
+    }
+  },
+
+  // 稍后再做（动作菜单入口，不移到最后）
+  _postponeLater(idx) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    if (!ex) return;
+    clearInterval(this.restTimer);
+    this.restTimer = null;
+    this._ensureQueue();
+    ex.qStatus = 'later';
+    this._persistWorkoutState();
+    const nxt = this._nextQueueIndex(idx);
+    if (nxt === null || nxt === idx) {
+      if (nxt === null) this.finishWorkout(); else this.renderExercise(nxt);
+    } else {
+      this.renderExercise(nxt);
+    }
+  },
+
+  // 选择位置：插入到某个动作之前
+  _choosePosition(idx) {
+    const w = this.workout;
+    if (!w) return;
+    this._ensureQueue();
+    const ex = w.exercises[idx];
+    const positions = w.queue.filter(i => i !== idx);
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask pos-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet pos-sheet">
+        <div class="ws-title">${I18n.t('queue.choosePos')} · ${ex.cn}</div>
+        <div class="pos-list" style="max-height:45vh;overflow:auto;">
+          <button class="pos-row" data-pos-end>${I18n.t('queue.posEnd')}</button>
+          ${positions.map((i, k) => `<button class="pos-row" data-pos="${i}">${k + 1}. ${w.exercises[i].cn}</button>`).join('')}
+        </div>
+        <button class="btn btn-ghost" data-pos-cancel style="width:100%;margin-top:8px;">${I18n.t('queue.cancel')}</button>
+      </div>`;
+    document.body.appendChild(sheet);
+    const close = () => sheet.remove();
+    sheet.querySelector('[data-pos-cancel]').onclick = close;
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+    sheet.querySelector('[data-pos-end]').onclick = () => {
+      close();
+      const q = w.queue.filter(i => i !== idx);
+      q.push(idx);
+      w.queue = q;
+      ex.qStatus = 'later';
+      this._persistWorkoutState();
+      const nxt = this._nextQueueIndex(idx);
+      if (nxt === null || nxt === idx) { if (nxt === null) this.finishWorkout(); else this.renderExercise(nxt); }
+      else this.renderExercise(nxt);
+    };
+    sheet.querySelectorAll('[data-pos]').forEach(b => {
+      b.onclick = () => {
+        close();
+        const target = Number(b.dataset.pos);
+        const q = w.queue.filter(i => i !== idx);
+        const t = q.indexOf(target);
+        q.splice(t, 0, idx);
+        w.queue = q;
+        ex.qStatus = 'later';
+        this._persistWorkoutState();
+        const nxt = this._nextQueueIndex(idx);
+        if (nxt === null || nxt === idx) { if (nxt === null) this.finishWorkout(); else this.renderExercise(nxt); }
+        else this.renderExercise(nxt);
+      };
+    });
+  },
+
+  // 跳过确认：跳过 = 今天不做（弹确认 + 可选原因）
+  _confirmSkip(idx) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    if (!ex) return;
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask skip-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet skip-sheet">
+        <div class="ws-title">${I18n.t('queue.skipConfirmTitle')}</div>
+        <div class="skip-ex">${ex.cn}</div>
+        <div class="skip-text">${I18n.t('queue.skipConfirmText')}</div>
+        <div class="skip-reason">
+          <input class="ws-input skip-input" id="skip-reason" placeholder="${I18n.t('queue.skipReasonPh')}" />
+        </div>
+        <div class="skip-reasons">
+          ${[I18n.t('queue.skipReason')].map(r => '').join('')}
+        </div>
+        <div class="skip-actions">
+          <button class="btn btn-ghost" data-skip-no style="flex:1;">${I18n.t('queue.skipNo')}</button>
+          <button class="btn btn-accent" data-skip-yes style="flex:1;">${I18n.t('queue.skipYes')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(sheet);
+    const close = () => sheet.remove();
+    sheet.querySelector('[data-skip-no]').onclick = close;
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+    sheet.querySelector('[data-skip-yes]').onclick = () => {
+      const reason = (sheet.querySelector('#skip-reason') || {}).value || '';
+      close();
+      this._doSkip(idx, reason);
+    };
+  },
+
+  _doSkip(idx, reason) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    if (!ex) return;
+    clearInterval(this.restTimer);
+    this.restTimer = null;
+    this._ensureQueue();
+    ex.skipped = true;
+    ex.qStatus = 'skipped';
+    ex.skipReason = reason || '';
+    this._persistWorkoutState();
+    const nxt = this._nextQueueIndex(idx);
+    if (nxt === null) this.finishWorkout();
+    else this.renderExercise(nxt);
+  },
+
+  // 替换动作：从动作库挑一个未在今天用过的
+  _replaceExercise(idx) {
+    const w = this.workout;
+    if (!w) return;
+    const ex = w.exercises[idx];
+    const usedIds = new Set(w.exercises.map(e => e.exId));
+    const pool = Object.keys(EXERCISES).filter(id => !usedIds.has(id));
+    if (!pool.length) {
+      this._showQueueToast(I18n.t('queue.noReach'));
+      return;
+    }
+    // 按肌肉组优先，其次全部
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask rp-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet rp-sheet">
+        <div class="ws-title">${I18n.t('queue.replace')} · ${ex.cn}</div>
+        <div class="rp-hint">${I18n.t('queue.replaceHint')}</div>
+        <div class="rp-list" style="max-height:45vh;overflow:auto;">
+          ${pool.slice(0, 24).map(id => `<button class="rp-row" data-rp="${id}">${EXERCISES[id].cn}</button>`).join('')}
+        </div>
+        <button class="btn btn-ghost" data-rp-cancel style="width:100%;margin-top:8px;">${I18n.t('queue.cancel')}</button>
+      </div>`;
+    document.body.appendChild(sheet);
+    const close = () => sheet.remove();
+    sheet.querySelector('[data-rp-cancel]').onclick = close;
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+    sheet.querySelectorAll('[data-rp]').forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.rp;
+        const src = EXERCISES[id];
+        if (!src) return;
+        close();
+        const newEx = {
+          exId: id, en: src.en, cn: src.cn, target: src.target, muscle: src.muscle, assist: src.assist || [],
+          points: src.points || [], mistakes: src.mistakes || [], alts: src.alts || [],
+          sets: ex.sets, reps: ex.reps, rir: ex.rir, rest: ex.rest,
+          weight: ex.weight || Store.currentWeight(id), lastSets: ex.lastSets, lastRec: ex.lastRec,
+          done: [], curSet: 0, skipped: false, qStatus: 'pending', qDone: false,
+          timeUnit: src.timeUnit || null, optional: !!src.optional, type: src.type || 'weight'
+        };
+        w.exercises[idx] = newEx;
+        this._ensureQueue();
+        this._persistWorkoutState();
+        this._showQueueToast(I18n.t('queue.replaced').replace('%s', src.cn));
+        this.renderExercise(idx);
+      };
+    });
+  },
+
+  _showQueueToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'qs-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.classList.add('show'); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 1600); }, 10);
+  },
+
+  // 结束前检查：仍有「稍后再做」未完成 → 提示
+  _checkBeforeFinish() {
+    const w = this.workout;
+    if (!w) return false;
+    this._ensureQueue();
+    const laterLeft = w.exercises.filter((ex, i) => ex.qStatus === 'later' && !(ex.done && ex.done.length >= ex.sets)).map((ex, i) => ({ ex, i }));
+    if (laterLeft.length === 0) return false;
+    const sheet = document.createElement('div');
+    sheet.className = 'ws-mask lf-mask';
+    sheet.innerHTML = `
+      <div class="ws-sheet lf-sheet">
+        <div class="ws-title">${I18n.t('queue.laterLeft').replace('%d', laterLeft.length)}</div>
+        <div class="lf-hint">${I18n.t('queue.laterLeftHint')}</div>
+        <div class="lf-list">
+          ${laterLeft.map(({ ex }) => `<div class="lf-row">· ${ex.cn}</div>`).join('')}
+        </div>
+        <div class="lf-actions">
+          <button class="btn" data-lf-keep style="flex:1;">${I18n.t('queue.keepTrain')}</button>
+          <button class="btn btn-accent" data-lf-finish style="flex:1;">${I18n.t('queue.finishAnyway')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(sheet);
+    return new Promise((resolve) => {
+      sheet.querySelector('[data-lf-keep]').onclick = () => { sheet.remove(); resolve('keep'); };
+      sheet.querySelector('[data-lf-finish]').onclick = () => { sheet.remove(); resolve('finish'); };
+      sheet.addEventListener('click', (e) => { if (e.target === sheet) { sheet.remove(); resolve('keep'); } });
+    });
   },
 
   _checkPR(ex, reps) {
@@ -3006,16 +3672,17 @@ const UI = {
     this.restFinishedEx = !!finishedEx;
     this.restSec = rest;
     this.restEndTs = Date.now() + left * 1000;
-    const nextEx = idx + 1 < w.exercises.length ? w.exercises[idx+1] : null;
+    const nextEx = this._nextQueueIndex(idx);
     let nextLabel = I18n.t('train.upcomingFinish');
-    if (nextEx) {
-      if (nextEx.type === 'time') {
-        const u = String(nextEx.timeUnit || 'sec');
-        nextLabel = `${I18n.t('train.nextGroup')}<b>${nextEx.cn} ${nextEx.reps && nextEx.reps[1] ? nextEx.reps[1] : ''} ${u}</b>`;
-      } else if (nextEx.type === 'reps' || !nextEx.weight) {
-        nextLabel = `${I18n.t('train.nextGroup')}<b>${nextEx.cn}（徒手）</b>`;
+    if (nextEx !== null) {
+      const nEx = w.exercises[nextEx];
+      if (nEx.type === 'time') {
+        const u = String(nEx.timeUnit || 'sec');
+        nextLabel = `${I18n.t('train.nextGroup')}<b>${nEx.cn} ${nEx.reps && nEx.reps[1] ? nEx.reps[1] : ''} ${u}</b>`;
+      } else if (nEx.type === 'reps' || !nEx.weight) {
+        nextLabel = `${I18n.t('train.nextGroup')}<b>${nEx.cn}（徒手）</b>`;
       } else {
-        nextLabel = `${I18n.t('train.nextGroup')}<b>${nextEx.cn} ${nextEx.weight}kg</b>`;
+        nextLabel = `${I18n.t('train.nextGroup')}<b>${nEx.cn} ${nEx.weight}kg</b>`;
       }
     }
 
@@ -3064,20 +3731,6 @@ const UI = {
     return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
   },
 
-  _afterRest(idx, finishedEx) {
-    const w = this.workout;
-    // 如果刚完成的动作还有未完成组 -> 回到该动作继续
-    const ex = w.exercises[idx];
-    if (!ex.skipped && ex.done.length < ex.sets) {
-      this.renderExercise(idx);
-    } else if (idx + 1 < w.exercises.length) {
-      // 下一个动作
-      this.renderExercise(idx + 1);
-    } else {
-      this.finishWorkout();
-    }
-  },
-
   /* ---------- ← TODAY 暂离：保存当前训练状态，返回首页（训练不结束） ---------- */
   _persistWorkoutState() {
     const w = this.workout;
@@ -3093,6 +3746,9 @@ const UI = {
       lastRec: ex.lastRec || (ex.done && ex.done.length ? ex.done[ex.done.length - 1] : null),
       done: ex.done || [], curSet: ex.curSet || 0,
       skipped: !!ex.skipped,
+      // Workout Queue：持久化每个动作的队列状态（done/later/skipped/pending）
+      qStatus: ex.qStatus || (ex.done && ex.done.length ? 'done' : (ex.skipped ? 'skipped' : 'pending')),
+      qDone: !!ex.qDone || !!(ex.done && ex.done.length > 0),
       timeUnit: ex.timeUnit || null, optional: !!ex.optional
     }));
     const rec = {
@@ -3102,6 +3758,8 @@ const UI = {
       setsDone: w.exercises.reduce((a, ex) => a + (ex.done || []).length, 0),
       setsTotal: w.totalSets || 0,
       records, prs: w.prs || [],
+      // Workout Queue：持久化今日执行顺序（仅本训练 session，不影响长期模板）
+      queue: (Array.isArray(w.queue) && w.queue.length) ? w.queue.slice() : w.exercises.map((_, i) => i),
       startTs: w.startTs || now,
       inProgress: true,
       // 离场位置：当前动作序号 + 休息计时快照
@@ -3126,10 +3784,24 @@ const UI = {
     this.switchTab('today');
   },
 
-  finishWorkout() {
+  async finishWorkout() {
     const w = this.workout;
     const d = Store.get();
     clearInterval(this.restTimer);
+
+    // 结束前检查：仍有「稍后再做」未完成 → 提示
+    this._ensureQueue();
+    const laterLeft = w.exercises.filter(ex => ex.qStatus === 'later' && !(ex.done && ex.done.length >= ex.sets));
+    if (laterLeft.length > 0) {
+      const choice = await this._checkBeforeFinish();
+      if (choice !== 'finish') {
+        // 继续训练 → 回到队列页或当前动作
+        const resumeIdx = this._nextQueueIndex(this.curIdx);
+        if (resumeIdx !== null) this.renderExercise(resumeIdx);
+        else this.renderExercise(this.curIdx);
+        return;
+      }
+    }
 
     // 保存训练
     const key = Store.todayKey();
@@ -3137,6 +3809,7 @@ const UI = {
     let volume = 0;
     let setsDone = 0;
     const records = [];
+    const skippedInfo = [];
 
     w.exercises.forEach(ex => {
       ex.done.forEach(set => {
@@ -3152,12 +3825,24 @@ const UI = {
           Store.pushExHistory(ex.exId, { dateKey: key, weight: set.weight, reps: set.reps, rir: set.rir });
         });
       }
+      // 跳过原因记录
+      if (ex.skipped || ex.qStatus === 'skipped') {
+        skippedInfo.push({ exId: ex.exId, en: ex.en, cn: ex.cn, reason: ex.skipReason || '' });
+      }
     });
 
     const workoutRec = {
       dateKey: key, type: 'STRENGTH', planDay: w.planDay ? w.planDay.name : '力量训练', duration, volume: Math.round(volume),
       setsDone, setsTotal: w.totalSets, records, prs: w.prs || [],
-      startTs: w.startTs
+      startTs: w.startTs,
+      // Workout Queue：保存今日实际执行顺序 + 跳过明细
+      queueOrder: (Array.isArray(w.queue) && w.queue.length) ? w.queue.slice() : w.exercises.map((_, i) => i),
+      skippedInfo,
+      // 动作级统计：计划 / 完成 / 跳过 / 稍后再做
+      exPlanned: w.exercises.length,
+      exDone: w.exercises.filter(ex => (ex.done && ex.done.length >= ex.sets)).length,
+      exSkipped: w.exercises.filter(ex => ex.skipped || ex.qStatus === 'skipped').length,
+      exLater: w.exercises.filter(ex => ex.qStatus === 'later' && !(ex.done && ex.done.length >= ex.sets)).length
     };
     // 覆盖当天已有记录
     const existingIdx = d.workouts.findIndex(x => x.dateKey === key);
@@ -3208,6 +3893,7 @@ const UI = {
           <div class="sh-kicker">${I18n.t('review.TODAY_DONE')}</div>
           <div class="sh-time">${rec.duration} <span class="u">MIN</span></div>
           <div class="sh-sub">${rec.setsDone} / ${rec.setsTotal} SETS · ${rec.volume} KG</div>
+          ${(rec.exPlanned !== undefined) ? `<div class="sh-exstats">${I18n.t('queue.inProgressCount').replace('%d', rec.exDone || 0).replace('%d', rec.exPlanned)}${(rec.exSkipped) ? ` · SKIP ${rec.exSkipped}` : ''}</div>` : ''}
         </div>
         ${completionLine ? `<div class="completion-line">${completionLine}</div>` : ''}
 
@@ -3246,6 +3932,8 @@ const UI = {
           <div class="hm-txt">${Persona.get('done')}</div>
         </div>
 
+        ${this._summaryOrderHtml(rec)}
+
         <button class="btn btn-accent" data-back-home style="margin-top:24px;">${I18n.t('review.backHome')}</button>
       </div>`;
 
@@ -3274,5 +3962,34 @@ const UI = {
         b.parentElement.querySelector('[data-adopt]').style.display = 'none';
       };
     });
+  },
+
+  // 总结页：今日实际执行顺序（低调整体，不打断总结主流程）
+  _summaryOrderHtml(rec) {
+    const d = Store.get();
+    const exNames = {};
+    const exCn = {};
+    (rec.records || []).forEach(r => { if (r.exId) { exNames[r.exId] = r.en; exCn[r.exId] = r.cn; } });
+    // 用动作库补全名称
+    Object.keys(EXERCISES).forEach(id => { exNames[id] = EXERCISES[id].en; exCn[id] = EXERCISES[id].cn; });
+    let order = rec.queueOrder;
+    // 老数据兜底：无 queueOrder 时按 records 顺序
+    if (!Array.isArray(order) || !order.length) {
+      order = (rec.records || []).map((_, i) => i);
+    }
+    const items = order.map((i, k) => {
+      const r = (rec.records || [])[i];
+      const id = r ? r.exId : null;
+      const name = (r && (r.cn || r.en)) || (id && exCn[id]) || (id && exNames[id]) || '—';
+      const skipped = rec.skippedInfo ? rec.skippedInfo.some(s => s.exId === id) : false;
+      const mark = skipped ? ` <span class="so-skip">${I18n.t('queue.skipped')}</span>` : '';
+      return `<div class="so-row"><span class="so-n">${k + 1}</span><span class="so-name">${name}${mark}</span></div>`;
+    }).join('');
+    if (!items) return '';
+    return `
+      <div class="summary-order">
+        <div class="so-h">${I18n.t('queue.title')} · ${I18n.t('review.order')}</div>
+        ${items}
+      </div>`;
   }
 };

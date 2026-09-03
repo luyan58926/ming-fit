@@ -122,6 +122,21 @@ const Store = (() => {
         if (Array.isArray(data.workouts)) {
           data.workouts = data.workouts.filter(w => !(w.inProgress && (!Array.isArray(w.records) || w.records.length === 0)));
         }
+        // Workout Queue 兼容：确保每次恢复时 records 带有 qStatus/qDone 字段（默认与 done/skipped 对齐）
+        if (Array.isArray(data.workouts)) {
+          data.workouts.forEach(w => {
+            if (!Array.isArray(w.records)) return;
+            w.records.forEach(r => {
+              const isDone = Array.isArray(r.done) && r.done.length > 0;
+              const isSkipped = !!r.skipped;
+              if (r.qStatus === undefined) {
+                // 旧数据无队列状态：进行中的训练，未完成动作一律视为 pending；已暂离恢复时按旧逻辑（index 顺序）
+                r.qStatus = isDone ? 'done' : (isSkipped ? 'skipped' : 'pending');
+              }
+              if (r.qDone === undefined) r.qDone = !!r.done && r.done.length > 0;
+            });
+          });
+        }
         return data;
       }
     } catch (e) { /* ignore */ }

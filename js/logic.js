@@ -147,25 +147,17 @@ const Logic = {
     const dow = new Date().getDay();
     const dayIndex = (dow + 6) % 7;  // 周一=0
 
-    // 有氧 / 恢复日：无力量动作
-    if (type !== 'STRENGTH') {
-      let planDayName = '有氧训练';
-      if (type === 'ACTIVE_RECOVERY') planDayName = '主动恢复';
-      else if (type === 'FULL_REST') planDayName = '完全恢复';
-      return {
-        dateKey: todayKey,
-        planDay: type === 'CARDIO' ? '有氧训练' : planDayName,
-        type,
-        exercises: [],
-        totalSets: 0,
-        startTs: Date.now(),
-        inProgress: false
-      };
-    }
-
+    // 恢复进行中的力量训练优先于"当天类型"判断：
+    // 无论今天临时改成 CARDIO/恢复日，只要有未完成的力量训练记录，都必须恢复
+    // （规格第 21 条：返回 TODAY / 刷新 / 继续训练 → 恢复完全相同的队列）
     const planDay = this.strengthTemplateFor(dayIndex);
     const existing = Store.get().workouts.find(w => w.dateKey === todayKey && (w.type || 'STRENGTH') === 'STRENGTH');
     if (existing && existing.inProgress && Array.isArray(existing.records) && existing.records.length > 0) {
+      // 恢复队列：优先用今日执行顺序（queue = records 索引数组）；无则按原始模板顺序
+      let queue = Array.isArray(existing.queue) && existing.queue.length
+        ? existing.queue.filter(q => q >= 0 && q < existing.records.length)
+        : existing.records.map((_, i) => i);
+      if (!queue.length) queue = existing.records.map((_, i) => i);
       return {
         dateKey: todayKey,
         planDay: planDay,
@@ -179,9 +171,15 @@ const Logic = {
             weight: r.weight, lastSets: r.lastSets, lastRec: (r.done && r.done.length) ? r.done[r.done.length - 1] : null,
             done: r.done || [], curSet: r.curSet || 0,
             skipped: !!r.skipped,
-            timeUnit: src.timeUnit || null, optional: !!src.optional
+            // 队列状态：done/later/skipped/pending（current 为瞬态，不持久化）
+            qStatus: r.qStatus || ((Array.isArray(r.done) && r.done.length > 0) ? 'done' : (r.skipped ? 'skipped' : 'pending')),
+            qDone: r.qDone !== undefined ? !!r.qDone : !!((r.done || []).length > 0),
+            timeUnit: src.timeUnit || null, optional: !!src.optional,
+            type: src.type || null
           };
         }),
+        // 今日执行顺序队列（不修改长期模板）
+        queue: queue,
         totalSets: existing.records.reduce((a, r) => a + r.setsTotal, 0),
         startTs: existing.startTs,
         inProgress: true,
@@ -189,6 +187,22 @@ const Logic = {
         // ← TODAY 暂离恢复：回到离场时的动作序号 / 休息计时
         currentIdx: (typeof existing.currentIdx === 'number' && existing.currentIdx >= 0 && existing.currentIdx < existing.records.length) ? existing.currentIdx : 0,
         restSnapshot: existing.restSnapshot || null
+      };
+    }
+
+    // 有氧 / 恢复日：无力量动作（注意：上面的恢复分支优先，因此不会漏掉暂离的力量训练）
+    if (type !== 'STRENGTH') {
+      let planDayName = '有氧训练';
+      if (type === 'ACTIVE_RECOVERY') planDayName = '主动恢复';
+      else if (type === 'FULL_REST') planDayName = '完全恢复';
+      return {
+        dateKey: todayKey,
+        planDay: type === 'CARDIO' ? '有氧训练' : planDayName,
+        type,
+        exercises: [],
+        totalSets: 0,
+        startTs: Date.now(),
+        inProgress: false
       };
     }
 
@@ -225,8 +239,12 @@ const Logic = {
         lastRec,
         done: [],
         curSet: 0,
+        // 队列状态：初始全部待训练（今日队列与长期模板解耦，不改动 MING PLAN）
+        qStatus: 'pending',
+        qDone: false,
         timeUnit: ex.timeUnit || null,   // 'min' | 'sec' | null（重量型）
-        optional: !!ex.optional
+        optional: !!ex.optional,
+        type: ex.type || null
       };
     }).filter(Boolean);
 
@@ -235,6 +253,8 @@ const Logic = {
       planDay,
       type: 'STRENGTH',
       exercises,
+      // 今日执行顺序队列（初始 = 模板顺序；用户调整只改此数组，不影响 planDay/schedule 长期模板）
+      queue: exercises.map((_, i) => i),
       totalSets: exercises.reduce((a, e) => a + e.sets, 0),
       startTs: Date.now(),
       inProgress: true
