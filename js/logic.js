@@ -13,13 +13,96 @@ const Logic = {
   },
 
   /* ---------- 每周训练安排 ---------- */
+  // 归一化 weekOverride.days 的第 index 项。兼容两种形态：
+  //   ① 旧数据：'STRENGTH' 字符串      → { type:'STRENGTH', src:null }
+  //   ② 新数据：{ type:'STRENGTH', src:2 } → 原样返回
+  // src 语义：仅在 type==='STRENGTH' 时有效，表示"今天照第 src 天那套内容练"（引用，不是交换）。
+  _normDayEntry(entry) {
+    if (!entry) return null;
+    if (typeof entry === 'string') return { type: entry, src: null };
+    if (typeof entry === 'object' && entry.type) {
+      const src = (typeof entry.src === 'number' && entry.src >= 0 && entry.src <= 6) ? entry.src : null;
+      return { type: entry.type, src };
+    }
+    return null;
+  },
+
+  // 取某天在 weekOverride 中的原始条目（未归一化，可能含 exercises/overrides）
+  _overrideEntryFor(index) {
+    const ov = this.weekOverrideActive();
+    if (!ov || !ov.days) return null;
+    const e = ov.days[index];
+    if (e && typeof e === 'object' && e.type) return e;
+    return null;
+  },
+
   // 获取某天(index)在当前周的实际类型（应用本周临时调整后的结果）
   // index: 0=周一 .. 6=周日
   typeFor(index) {
     const d = Store.get();
     const ov = this.weekOverrideActive();
-    if (ov && ov.days && ov.days[index]) return ov.days[index];
+    if (ov && ov.days && ov.days[index]) {
+      const e = this._normDayEntry(ov.days[index]);
+      if (e) return e.type;
+    }
     return (d.schedule && d.schedule[index]) || 'REST';
+  },
+
+  // 获取某天"训练内容"的来源日索引。
+  // 返回 index 本身 = 用本天自己的模板；返回其它值 = 本周临时借用那一天的模板。
+  // 关键：来源是"引用"而非"交换" —— 借用周三的内容，周三本天不受任何影响。
+  typeSourceFor(index) {
+    const ov = this.weekOverrideActive();
+    if (ov && ov.days && ov.days[index]) {
+      const e = this._normDayEntry(ov.days[index]);
+      if (e && e.type === 'STRENGTH' && typeof e.src === 'number') return e.src;
+    }
+    return index;
+  },
+
+  // 某天"实际会练的内容"（类型 + 模板），供 TODAY 卡片与训练编排使用
+  // 依次应用两种覆盖：
+  //   ① src 引用：借用 src 那天的模板（本周临时）
+  //   ② 临时自定义：weekOverride 该天的 exercises/overrides（"编辑今天的动作"）直接替换
+  dayPlanFor(index) {
+    const type = this.typeFor(index);
+    const src = this.typeSourceFor(index);
+    const ovEntry = this._overrideEntryFor(index);
+    if (type === 'STRENGTH') {
+      const base = this.strengthTemplateFor(src);
+      if (ovEntry && Array.isArray(ovEntry.exercises) && ovEntry.exercises.length) {
+        return {
+          type, src,
+          tpl: Object.assign({}, base, {
+            exercises: ovEntry.exercises.slice(),
+            overrides: Object.assign({}, ovEntry.overrides || {})
+          })
+        };
+      }
+      return { type, src, tpl: base };
+    }
+    if (type === 'CARDIO') return { type, src, tpl: this.cardioTemplateFor(src) };
+    if (type === 'ACTIVE_RECOVERY') return { type, src, tpl: this.activeRecoveryTemplateFor() };
+    return { type, src, tpl: this.fullRestTemplateFor() };
+  },
+
+  // 可选的"力量训练套餐"列表（供 ADJUST TODAY 一键选择）
+  // 只列出真正有模板定义的力量日：周一(0)/周三(2)/周五(4) —— 臀腿 / 胸肩 / 背
+  strengthPackages() {
+    return [0, 2, 4].map(i => {
+      const tpl = this.strengthTemplateFor(i);
+      return {
+        idx: i,
+        name: tpl.name,
+        cn: tpl.cn || '',
+        dayCn: tpl.dayCn || '',
+        muscles: tpl.muscles || '',
+        // 短标签：臀腿 / 胸肩臂 / 背肩臂（一键选择的按钮主文案）
+        target: tpl.target || '',
+        exCount: (tpl.exercises || []).length,
+        restNote: tpl.restNote || 0
+      };
+    });
   },
 
   // 本周临时调整是否生效（weekOverride 属于本周）
@@ -150,7 +233,8 @@ const Logic = {
     // 恢复进行中的力量训练优先于"当天类型"判断：
     // 无论今天临时改成 CARDIO/恢复日，只要有未完成的力量训练记录，都必须恢复
     // （规格第 21 条：返回 TODAY / 刷新 / 继续训练 → 恢复完全相同的队列）
-    const planDay = this.strengthTemplateFor(dayIndex);
+    // 注意：走 dayPlanFor —— 它会依次应用「src 借用某天模板」与「临时自定义动作」
+    const planDay = this.dayPlanFor(dayIndex).tpl;
     const existing = Store.get().workouts.find(w => w.dateKey === todayKey && (w.type || 'STRENGTH') === 'STRENGTH');
     if (existing && existing.inProgress && Array.isArray(existing.records) && existing.records.length > 0) {
       // 恢复队列：优先用今日执行顺序（queue = records 索引数组）；无则按原始模板顺序

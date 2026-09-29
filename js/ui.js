@@ -746,7 +746,8 @@ const UI = {
     // 今天卡片标题/内容
     let title, label, muscles, stats, startBtn;
     if (isStrength) {
-      const tpl = Logic.strengthTemplateFor(dayIndex);
+      // 走 dayPlanFor：临时"照周三那套练"时，卡片标题/数据要跟着来源日变
+      const tpl = Logic.dayPlanFor(dayIndex).tpl;
       title = tpl.name;
       label = I18n.t('type.STRENGTH_SHORT');
       muscles = tpl.cn + ' · ' + tpl.muscles;
@@ -1378,7 +1379,7 @@ const UI = {
     const m = this._typeMeta(type);
     let title, sub, meta = '', detail = '';
     if (type === 'STRENGTH') {
-      const tpl = Logic.strengthTemplateFor(i);
+      const tpl = Logic.dayPlanFor(i).tpl;
       const exs = (tpl.exercises || []).map(id => EXERCISES[id]).filter(Boolean);
       const sets = exs.reduce((s, e) => s + (e.sets || 0), 0);
       title = tpl.name;
@@ -1428,7 +1429,7 @@ const UI = {
     sheet.className = 'sheet-mask';
     let body = '';
     if (type === 'STRENGTH') {
-      const tpl = Logic.strengthTemplateFor(i);
+      const tpl = Logic.dayPlanFor(i).tpl;
       body = (tpl.exercises || []).map(id => {
         const e = EXERCISES[id];
         if (!e) return '';
@@ -2379,7 +2380,20 @@ const UI = {
     const dow = new Date().getDay();
     const dayIndex = (dow + 6) % 7;
     const days = [I18n.t('adj.day0'), I18n.t('adj.day1'), I18n.t('adj.day2'), I18n.t('adj.day3'), I18n.t('adj.day4'), I18n.t('adj.day5'), I18n.t('adj.day6')];
-    const opts = ['STRENGTH', 'CARDIO', 'ACTIVE_RECOVERY', 'FULL_REST'];
+    const zh = I18n.lang === 'zh-CN';
+    // 基础类型不含 STRENGTH —— 力量统一走下方「力量训练内容」套餐选择，
+    // 避免"选力量 = 永远练臀腿"的歧义（周一/周三/周五三套内容各不相同）
+    const opts = ['CARDIO', 'ACTIVE_RECOVERY', 'FULL_REST'];
+
+    const curType = Logic.typeFor(dayIndex);
+    const curSrc = Logic.typeSourceFor(dayIndex);
+    // 力量套餐：臀腿(周一) / 胸肩(周三) / 背(周五) —— 一键照某天那套练
+    const packages = Logic.strengthPackages().map(p => ({
+      idx: p.idx,
+      en: zh ? (p.target || p.cn) : p.name,  // 中文主文案用短标签：臀腿 / 胸肩臂 / 背肩臂
+      cn: zh ? (p.muscles || p.cn) : p.name, // 副文案：详细部位
+      sel: curType === 'STRENGTH' && curSrc === p.idx
+    }));
 
     const sheet = document.createElement('div');
     sheet.className = 'sheet-mask';
@@ -2387,14 +2401,20 @@ const UI = {
     for (let i = 0; i < 7; i++) {
       if (i === dayIndex) continue;
       const m = this._typeMeta(Logic.typeFor(i));
-      swapDays.push([i, days[i], I18n.lang === 'zh-CN' ? m.cn : m.en]);
+      swapDays.push([i, days[i], zh ? m.cn : m.en]);
     }
     sheet.innerHTML = `
       <div class="sheet">
         <div class="sheet-title">${I18n.t('adj.title', [days[dayIndex]])}</div>
         <div class="sheet-sub">${I18n.t('adj.sub')}</div>
+        <div class="sheet-h">${I18n.t('adj.strengthContent')}</div>
+        ${packages.map(p => `
+          <div class="sheet-opt pk-opt ${p.sel ? 'sel' : ''}" data-adj-package="${p.idx}">
+            <span class="pk-main"><span class="so-en">${p.en}</span><span class="pk-cn">${p.cn}</span></span>
+            <span class="pk-arrow">›</span>
+          </div>`).join('')}
         <div class="sheet-h">${I18n.t('adj.changeTo')}</div>
-        ${opts.map(k => { const m = this._typeMeta(k); return `<div class="sheet-opt" data-adj-type="${k}"><span class="so-en">${m.en}</span><span class="so-cn">${I18n.lang === 'zh-CN' ? m.cn : m.en}</span></div>`; }).join('')}
+        ${opts.map(k => { const m = this._typeMeta(k); const sel = (k === curType) ? 'sel' : ''; return `<div class="sheet-opt ${sel}" data-adj-type="${k}"><span class="so-en">${m.en}</span><span class="so-cn">${zh ? m.cn : m.en}</span></div>`; }).join('')}
         <div class="sheet-h">${I18n.t('adj.swapWith')}</div>
         ${swapDays.map(([i, dn, t]) => `<div class="sheet-opt" data-adj-swap="${i}"><span class="so-en">${dn}</span><span class="so-cn">${t} ›</span></div>`).join('')}
         <button class="btn btn-ghost" data-sheet-cancel style="width:100%;margin-top:8px;">${I18n.t('adj.cancel')}</button>
@@ -2402,16 +2422,35 @@ const UI = {
     document.body.appendChild(sheet);
 
     const weekKey = Store.weekKeyOf();
-    sheet.querySelectorAll('[data-adj-type]').forEach(o => {
+    const ensureOverride = () => {
+      const d2 = Store.get();
+      if (!d2.weekOverride || d2.weekOverride.weekKey !== weekKey) {
+        d2.weekOverride = { weekKey, days: (d2.schedule || []).slice() };
+      }
+      return d2;
+    };
+    // 一键选力量套餐：今天照第 idx 天那套练（引用，不是交换 —— 那天本身不受影响）
+    sheet.querySelectorAll('[data-adj-package]').forEach(o => {
       o.onclick = () => {
-        const d2 = Store.get();
-        if (!d2.weekOverride || d2.weekOverride.weekKey !== weekKey) {
-          d2.weekOverride = { weekKey, days: (d2.schedule || []).slice() };
-        }
-        d2.weekOverride.days[dayIndex] = o.dataset.adjType;
+        const src = Number(o.dataset.adjPackage);
+        const d2 = ensureOverride();
+        d2.weekOverride.days[dayIndex] = { type: 'STRENGTH', src };
         Store.save();
         sheet.remove();
-        const typeName = I18n.lang === 'zh-CN' ? this._typeMeta(o.dataset.adjType).cn : this._typeMeta(o.dataset.adjType).en;
+        const tpl = Logic.strengthTemplateFor(src);
+        const name = zh ? (tpl.muscles || tpl.cn || tpl.name) : tpl.name;
+        this._toast(I18n.t('adj.packChanged', [name]));
+        this.renderToday();
+      };
+    });
+    sheet.querySelectorAll('[data-adj-type]').forEach(o => {
+      o.onclick = () => {
+        const d2 = ensureOverride();
+        // 新结构 { type, src }；切到非力量类型时清掉 src
+        d2.weekOverride.days[dayIndex] = { type: o.dataset.adjType, src: null };
+        Store.save();
+        sheet.remove();
+        const typeName = zh ? this._typeMeta(o.dataset.adjType).cn : this._typeMeta(o.dataset.adjType).en;
         this._toast(I18n.t('adj.changed', [typeName]));
         this.renderToday();
       };
