@@ -952,6 +952,12 @@ details.ex-detail summary::-webkit-details-marker { display: none; }
 .sheet {
   width: 100%;
   max-width: 480px;
+  /* 内容超高（如 ADJUST TODAY 的 12 个选项）时限高并允许滚动，
+     否则弹层会向上溢出到视口外，顶部标题被裁掉且无法滚回 */
+  max-height: 88vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; /* 滚到边界不带动背后的页面 */
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 22px 22px 0 0;
