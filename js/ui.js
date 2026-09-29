@@ -1685,7 +1685,10 @@ const UI = {
     }
     const week = Logic.weeklySessions() || 0;
     const month = Logic.monthlySessions() || 0;
-    const dur = Logic.totalDuration() || 0;
+    const dur = Logic.totalDuration() || 0;   // 单位：分钟（workout.duration 落盘即为分钟）
+    // 总时长展示：不足 60 分钟显示分钟，否则显示小时（保留 1 位小数，整数不带 .0）
+    const durVal = dur < 60 ? dur : Math.round(dur / 60 * 10) / 10;
+    const durUnit = dur < 60 ? 'm' : 'h';
     const totalSets = Logic.totalSets() || 0;
     const volume = Logic.totalVolume() || 0;
     const rate = Logic.completionRate() || 0;
@@ -1711,7 +1714,7 @@ const UI = {
         <div class="prog-stat"><div class="ps-n">${month}</div><div class="ps-l">本月训练</div></div>
         <div class="prog-stat"><div class="ps-n">${d.streak||0}</div><div class="ps-l">连续天数</div></div>
         <div class="prog-stat"><div class="ps-n ${rate>=70?'accent':''}">${rate}%</div><div class="ps-l">计划完成率</div></div>
-        <div class="prog-stat"><div class="ps-n">${Math.round(dur/60)}h</div><div class="ps-l">总时长</div></div>
+        <div class="prog-stat"><div class="ps-n">${durVal}${durUnit}</div><div class="ps-l">总时长</div></div>
         <div class="prog-stat"><div class="ps-n">${totalSets}</div><div class="ps-l">总组数</div></div>
         <div class="prog-stat"><div class="ps-n">${volume>1000?Math.round(volume/1000)+'t':volume}</div><div class="ps-l">总容量</div></div>
         <div class="prog-stat"><div class="ps-n">${d.totalSessions||0}</div><div class="ps-l">累计训练</div></div>
